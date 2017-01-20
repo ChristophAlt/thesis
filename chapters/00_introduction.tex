@@ -1,35 +1,53 @@
 \chapter{Introduction}
-One of the most challenging tasks in computer science and engineering resolves around improving performance of a computational system. 
-Whether this has been done by making the hardware faster or inventing new systems, strategies and algorithms to parallelize work more efficiently. 
-Machine learning is no exception and efficient parallelization is a key aspect towards more intelligent systems. 
-Over the past decade the need for processing large amounts of data increased rapidly. 
-Many companies and institutions discovered the value inherent to data and started collecting vast amounts, e.g. user activities or sensor data. 
-The amount of data to be processed by a single algorithm is currently somewhere in the range between 100 gigabytes to tenth of petabytes. 
-While in the past, processing of data that could not be handled by a single machine was often reserved to organizations owning a supercomputer and therefore of limited use, recent developments in frameworks for distributed computing and the increase in cost efficiency of hardware changed this. 
-The success of what is now commonly refered to as "Big Data" started with the introduction of MapReduce \cite{Dean2004} in 2004. 
-The framework made it possible to process data in a distributed and fault tolerant way even though with the help of a compute cluster consisting of hundredth or thousandth of machines. 
-Instead of using a single, expensive, special hardware supercomputer, the framework provides the ability to combine commodity hardware machines into a compute cluster. 
-The framework then takes care of all necessary aspects to ensure a fault tolerant and parallel execution of the task submitted to the cluster. 
-The advantage over previous approachs is that the framework could be run entirely on top of machines using commodity hardware. 
-Which does not require special hardware and therefore equals low cost. 
-Since then, many of today's successful companies rely heavily on the ability to process vast amounts of data to improve their services and customer experience and it is used throughout many diverse fields ranging from finance, commerce all the way to healthcare and many more. 
-This alone is a challenge by itself and over the past years many new frameworks have been introduced to make development and execution of data mining and machine learning algorithms considerably easier.
+One of the most challenging tasks in computer science and engineering resolves around improving algorithm performance.
+In general this has been done by making hardware faster and inventing new strategies and algorithms to parallelize work more efficiently.
+Since it is clear that Moore's Law will not hold anymore, a lot of effort has been spent to horizontally scale algorithm computation across multiple machines.
+Machine learning is no exception and efficient parallelization is a key aspect towards more intelligent systems.
+By now, many general purpose frameworks for large scale data processing have been published which are used for running machine learning algorithms at scale as well.
+But often the performance is not satisfying due to the architecture and programming model not reflecting the underlying structure of most commonly used machine learning algorithms.
+Common data processing tasks can be represented as an extract-transform-load pipeline, which is often easy parallelizable. This does not hold for machine learning, where algorithms are mostly sequential in nature and can only be parallelized by exploiting their inherent stochastic properties.
+Unfortunatelly this can have a negative affect on the learning process.
+Therefore a key part of horizontally scaling machine learning algorithms is to ensure all participating learners have a consistent view on each others progress while at the same time maintaining a tradeoff between communicating progress and actually executing the learning task.
+
 
 \section{MapReduce and Beyond}
-Google's MapReduce has esentially lead the path to a widespread adoption of big data processing and the increased awareness of the value of big data. The MapReduce has been adapted by the Apache Hadoop project \cite{hadoop2009hadoop}, which quickly gained widespread adoption and by now provides a whole ecosystem around big data processing. 
-Including a fault tolerant distributed filesystem (HDFS), MapReduce framework and a resource manager (YARN) \cite{KumarVavilapalli2013}. On the other hand, MapReduce had some practical limitations that lead to the invention of more sophisticated and specialised big data frameworks, with the most widely used frameworks such as Apache Spark \cite{Zaharia2010}, Apache Flink \cite{Alexandrov2014} and GraphLab \cite{Low2012}.
+Many of todays successful businesses throughout fields like finance, e-commerce and healthcare rely heavily on the ability to process vast amounts of user or sensorical data, collected to make their services smarter and ultimatelly their user experience better.
+In order to learn from the collected data, discover patterns and ultimately gain new insights, it needs to be processed by some algorithm.
+The input can range somewhere between hundred gigabytes and tenth of petabytes.
+In the past, processing this much data required either a supercomputer, which was only available to large institutions or government entities or some proprietary compute cluster.
+All this changed when Google introduced MapReduce \cite{Dean2004} in 2004.
+The MapReduce framework made it possible to process data in a distributed and fault tolerant way with the help of a compute cluster formed by hundredth or thousandth of machines.
+Instead of using a single, expensive, special hardware supercomputer the framework provides the foundation to assemble commodity hardware machines into a compute cluster.
+The framework takes care of all necessary aspects to ensure a fault tolerant and parallel execution of the task submitted to the cluster.
+The advantage compared to previous approachs is that the framework can be run entirely on top of machines using commodity hardware, which does not require special hardware and therefore equals low cost.
 
-Google introduced its MapReduce system in 200x (c), with Apache Hadoop, Apache Spark (c), Apache Flink (c) and GraphLab (c) being the most widely used frameworks by the time. The first three frameworks are based upon the data-flow paradigm (c), whereas the latter uses a graph abstraction to model particular algorithms. While the primary focus of these systems lies on ETL and graph processing, they are often used to run machine learning algorithms as well. While this works well for algorithms that can be parallelized efficiently, performance on algorithms requiring many fast and probably asynchronous iterations to refine a model is not satisfying (c)(such as Logistic Regression or Latent Dirichlet Allocation). This fact led to the development of specialized frameworks, such as Petuum (c), ParameterServer (c) or Yahoo!LDA. These frameworks inhabit a completely different paradigm, not based on dataflow. While these frameworks are well suited for their particular purpose, namely ETL (c, fn) and execution of graph algorithms, when it comes to machine learning, these systems have some disadvantages, while these systems are very good at embarrassingly parallel algorithms and  namely the which led to poor performance when executing algorithms that quickly execute iterative model refinements (such as Logistic Regression) (often referred to as iterative convergent algorithms) due to large iteration overhead and the lack of executing iterations asynchronously on different nodes, which led to the invention of new systems. While these systems often increase the performance on machine learning algorithms by an order of magnitude compared to dataflow systems, most systems come with either limited usability which makes it difficult to implement additional algorithms, are tied to a specific algorithm or are very low level frameworks. Most recognized frameworks are Petuum (c), ParameterServer (c) and Yahoo!LDA (c).
-During the past couple of years the amount of data to be processed by machine learning algorithms has increased steadily. Machine learning has become the core of many successful businesses and continues to play an important role in the artificial intelligence community. Making products smarter and tied to users needs. Since the introduction of Google MapReduce a lot of new frameworks for large scale data mining have been introduced to make the processing of vast amounts of data more easier and more efficient. Relying on the capability to process vast amount of data in a constrained setup (time, space). Data collected has immense value.
-Efficiently distributing machine learning algoritms remains and extremely challenging problem. This motivates our work in the area of distributed machine learning. Ease of implementing new algorithms, 
+MapReduce esentially led the path to a convenient and widespread use of big data processing, which found its open source implementation in the Apache Hadoop project \cite{hadoop2009hadoop} (citation).
+The project quickly gained traction and has spawned many business grade platforms, which quickly gained widespread adoption and by now provides a whole ecosystem around big data processing. The software stack includes a fault tolerant distributed filesystem (HDFS) a MapReduce framework and a cluster resource manager (YARN) \cite{KumarVavilapalli2013}.
+On the other hand, MapReduce suffers from some practical limitations that lead to the development of new, more sophisticated and specialised big data frameworks, with the most widely used frameworks being Apache Spark \cite{Zaharia2010}, Apache Flink \cite{Alexandrov2014} and GraphLab \cite{Low2012}.
+The first two frameworks use at it's core a dataflow based architecture, whileas the latter uses a graph abstraction to model particular algorithms.
+While this works well for algorithms that can be expressed as an extract-transform-load pipeline, performance on algorithms requiring many computationally light iterations to update a shared state is not satisfying (c)(such as Logistic Regression or Latent Dirichlet Allocation). (iterative convergent algorithms)
 
 
 \section{Distributed Machine Learning}
-Machine learning has gained a lot of attention lately because it enables the possibility to learn from the collected data and works best with lot of data to learn from. Which is given by the vast amoutn of data collected. 
+This fact led to the development of specialized frameworks, such as Petuum (c), ParameterServer (c) and Yahoo!LDA. These frameworks inhabit a completely different paradigm which is not based on dataflow. While these systems often increase the performance on machine learning algorithms by an order of magnitude compared to dataflow systems, most systems come with either limited usability which makes it difficult to implement additional algorithms, are tied to a specific algorithm or are very low level frameworks.
+Efficiently distributing machine learning algoritms remains and extremely challenging problem. This motivates our work in the area of distributed machine learning. Ease of implementing new algorithms, 
+ 
 Improving speed, allowing more degrees of freedom (async program flow), ease the development of algorithms close to single machine implementations, compiler, letting the developer and researcher choose the strategy if necessary or implement heuristics <- challenge and motivation
+Even though machine learning algorithms can be run on “big data frameworks”, their general architecture affects performance for a wide range of algorithms, which then led to new systems being developed that are more “zugeschnitten” for this specific purpose
+
+This alone is a challenge by itself and over the past years many new frameworks have been introduced to make development and execution of data mining and machine learning algorithms considerably easier.
+
+A system targeting the execution of those algorithms at scale must therefore provide the ability to conscisely express the underlying algebraic structure and at the same time be flexible enough to allow experimentation and fine tuning.
+Where consistency management is an essential part to ensure that algorithms are executed both fast and also learning performance is well enought. Tradeoff, learning progress 
+Over the past decade the need for processing large amounts of data increased rapidly because many companies and institutions discovered the value inherent to data. 
 
 \section{Thesis Outline}
-introducing a novel system for distributed machine learning and researching mechanism to dynamically adapt and manage consistency among distributed state
-describe each chapter
+In this thesis we introduce a novel framework for large scale distributed machine learning.
+It improves upon currently available systems by providing a powerful programming abstraction that can express state of the art machine learning algorithms and at the same time tries to minimize the effort necessary to move from a single machine to a cluster.
+The framework provides optimizations for efficient parallel execution of the algorithm in the cluster and ensures the required consistency among parallel learners is ensured while maintaining the best tradeoff between algorithm execution and progress communication. All of this can be easily customized for quick prototyping and finetuning, which makes the system suited for developers as well as researchers.
 
-In this thesis we introduce a novel system for large scale distributed machine learning, which 
+Background
+State Centric Programming Model
+Consistency Management
+Experiments
+Wrap Up
