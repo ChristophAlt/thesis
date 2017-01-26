@@ -3,48 +3,57 @@ One of the most challenging tasks in computer science and engineering resolves a
 In general this has been done by making hardware faster and inventing new strategies and algorithms to parallelize work more efficiently.
 Since it is clear that Moore's Law will not hold anymore, a lot of effort has been spent to horizontally scale algorithm computation across multiple machines.
 Machine learning is no exception and efficient parallelization is a key aspect towards more intelligent systems.
-By now, many general purpose frameworks for large scale data processing have been published which are used for running machine learning algorithms at scale as well.
-But often the performance is not satisfying due to the architecture and programming model not reflecting the underlying structure of most commonly used machine learning algorithms.
-Common data processing tasks can be represented as an extract-transform-load pipeline, which is often easy parallelizable. This does not hold for machine learning, where algorithms are mostly sequential in nature and can only be parallelized by exploiting their inherent stochastic properties.
-Unfortunatelly this can have a negative affect on the learning process.
+By now, many general purpose frameworks for large scale data processing have been developed and published. Many of those are used for running more complex machine learning algorithms at scale as well.
+Unfortunatelly, the performance often is not satisfying due to the architecture and programming model not reflecting the underlying structure of most commonly used machine learning algorithms.
+Common data processing tasks can be represented as an extract-transform-load (ETL) pipeline, which is often easily parallelizable. This does not hold for machine learning, where algorithms are mostly sequential in nature and the only way of achieving parallelism is by exploiting their inherent stochastic properties. This allows to break the sequential execution in favor of parallel learning on subsets, which then needs to be combined in order to obtain a solution to the global task.
+While this can lead to a great speedup in terms of processed data, it can have a negative affect on the learning progress.
 Therefore a key part of horizontally scaling machine learning algorithms is to ensure all participating learners have a consistent view on each others progress while at the same time maintaining a tradeoff between communicating progress and actually executing the learning task.
 
 
 \section{MapReduce and Beyond}
 Many of todays successful businesses throughout fields like finance, e-commerce and healthcare rely heavily on the ability to process vast amounts of user or sensorical data, collected to make their services smarter and ultimatelly their user experience better.
-In order to learn from the collected data, discover patterns and ultimately gain new insights, it needs to be processed by some algorithm.
-The input can range somewhere between hundred gigabytes and tenth of petabytes.
+In order to learn from the collected data, discover patterns and ultimately gain new insights, it needs to be processed by an algorithm.
+It is not uncommon that the input ranges somewhere between hundred gigabytes and tenth of petabytes.
 In the past, processing this much data required either a supercomputer, which was only available to large institutions or government entities or some proprietary compute cluster.
 All this changed when Google introduced MapReduce \cite{Dean2004} in 2004.
 The MapReduce framework made it possible to process data in a distributed and fault tolerant way with the help of a compute cluster formed by hundredth or thousandth of machines.
 Instead of using a single, expensive, special hardware supercomputer the framework provides the foundation to assemble commodity hardware machines into a compute cluster.
-The framework takes care of all necessary aspects to ensure a fault tolerant and parallel execution of the task submitted to the cluster.
+The framework takes care of all necessary aspects to ensure a fault tolerant and parallel execution of a task submitted to the cluster.
 The advantage compared to previous approachs is that the framework can be run entirely on top of machines using commodity hardware, which does not require special hardware and therefore equals low cost.
 
-MapReduce esentially led the path to a convenient and widespread use of big data processing, which found its open source implementation in the Apache Hadoop project \cite{hadoop2009hadoop} (citation).
+MapReduce esentially led the path to a convenient and widespread use of big data processing, which found its open source implementation in the Apache Hadoop project \cite{hadoop2009hadoop}.
 The project quickly gained traction and has spawned many business grade platforms, which quickly gained widespread adoption and by now provides a whole ecosystem around big data processing. The software stack includes a fault tolerant distributed filesystem (HDFS) a MapReduce framework and a cluster resource manager (YARN) \cite{KumarVavilapalli2013}.
-On the other hand, MapReduce suffers from some practical limitations that lead to the development of new, more sophisticated and specialised big data frameworks, with the most widely used frameworks being Apache Spark \cite{Zaharia2010}, Apache Flink \cite{Alexandrov2014} and GraphLab \cite{Low2012}.
-The first two frameworks use at it's core a dataflow based architecture, whileas the latter uses a graph abstraction to model particular algorithms.
-While this works well for algorithms that can be expressed as an extract-transform-load pipeline, performance on algorithms requiring many computationally light iterations to update a shared state is not satisfying (c)(such as Logistic Regression or Latent Dirichlet Allocation). (iterative convergent algorithms)
+On the other hand, MapReduce suffers from some practical limitations that lead to the development of new, more sophisticated and specialised big data frameworks. With the most widely used frameworks being Apache Spark \cite{Zaharia2010}, Apache Flink \cite{Alexandrov2014} and GraphLab \cite{Low2012}.
+The first two frameworks use at it's core a dataflow pipeline based architecture, whileas the latter uses a graph abstraction to model particular algorithms.
+All this works well for algorithms that can be expressed as an extract-transform-load (ETL) pipeline and are often embarrassingly parallel in nature.
+On the other hand, machine learning algorithms often rely heavily on many, computationally light, iterations to iteratively update a shared state (model) such as logistic regression or latent dirichlet allocation (LDA).
+These so called iterative-convergent algorithms required a change in how systems for distributed large scale machine learning operate at its core.
 
 
 \section{Distributed Machine Learning}
-This fact led to the development of specialized frameworks, such as Petuum (c), ParameterServer (c) and Yahoo!LDA. These frameworks inhabit a completely different paradigm which is not based on dataflow. While these systems often increase the performance on machine learning algorithms by an order of magnitude compared to dataflow systems, most systems come with either limited usability which makes it difficult to implement additional algorithms, are tied to a specific algorithm or are very low level frameworks.
-Efficiently distributing machine learning algoritms remains and extremely challenging problem. This motivates our work in the area of distributed machine learning. Ease of implementing new algorithms, 
- 
-Improving speed, allowing more degrees of freedom (async program flow), ease the development of algorithms close to single machine implementations, compiler, letting the developer and researcher choose the strategy if necessary or implement heuristics <- challenge and motivation
-Even though machine learning algorithms can be run on “big data frameworks”, their general architecture affects performance for a wide range of algorithms, which then led to new systems being developed that are more “zugeschnitten” for this specific purpose
-
-This alone is a challenge by itself and over the past years many new frameworks have been introduced to make development and execution of data mining and machine learning algorithms considerably easier.
-
+This limitation sparked the development of frameworks specialized for distributed execution of iterative-convergent algorithms used in common machine learning tasks.
+The most widely recognized systems are Petuum \cite{Xing2015}, ParameterServer \cite{Li2014} and MALT \cite{Li2015}.
+Different from the MapReduce paradigm these frameworks, instead of using a pipeline to transform an immutable dataset into another immutable dataset, operate on a fixed but mutable state, which is held by a single machine or distributed over multiple machines.
+This state can then be updated by workers that have computed an update locally and send it to these state keepers. Which act as surrogates, taking state updates and incorporating these into the state by some user defined function.
+While these systems can increase the performance on machine learning algorithms by an order of magnitude (c) compared to dataflow systems, most systems come with either limited usability, which makes it difficult to implement additional algorithms, are tied to a specific algorithm or are very low level frameworks.
+Efficiently distributing machine learning algoritms while at the same time provide the ability to conscisely express machine learning algorithms remains and extremely challenging problem.
 A system targeting the execution of those algorithms at scale must therefore provide the ability to conscisely express the underlying algebraic structure and at the same time be flexible enough to allow experimentation and fine tuning.
-Where consistency management is an essential part to ensure that algorithms are executed both fast and also learning performance is well enought. Tradeoff, learning progress 
-Over the past decade the need for processing large amounts of data increased rapidly because many companies and institutions discovered the value inherent to data. 
+Where consistency management is an essential part to ensure that algorithms are executed both fast and also learning performance is well enought.
+
 
 \section{Thesis Outline}
 In this thesis we introduce a novel framework for large scale distributed machine learning.
-It improves upon currently available systems by providing a powerful programming abstraction that can express state of the art machine learning algorithms and at the same time tries to minimize the effort necessary to move from a single machine to a cluster.
-The framework provides optimizations for efficient parallel execution of the algorithm in the cluster and ensures the required consistency among parallel learners is ensured while maintaining the best tradeoff between algorithm execution and progress communication. All of this can be easily customized for quick prototyping and finetuning, which makes the system suited for developers as well as researchers.
+It improves upon currently available systems by providing a powerful programming abstraction that can conscisely express state of the art machine learning algorithms and at the same time minimizes the effort necessary to move from a single machine to a cluster.
+The framework design is optimized for efficient parallel execution of iterative-convegent algorithms in a cluster and ensures the required consistency is enforced among parallel learners, depending on the algorithm properties. By maintaining the best tradeoff between algorithm execution and progress communication the performance is improved as well.
+All of this can be easily customized for quick prototyping and finetuning, which makes the system suited for developers as well as researchers.
+I start off by providing background knowledge on state of the art dataflow systems and their internals in chapter \ref{c:background}, followed by a formal explaination of iterative-convergent algorithms. Both provide the foundation to understand why current dataflow systems are unsuited for many large scale distributed machine learning applications.
+I provide an overview over the important parts that need to be considered when developing a distributed machine learning system and how this is achieved by current frameworks.
+Chapter \ref{c:state_centric} introduces the state centric programming model, which treats the state as a mutable first class citizen, which can be distributed and alter by updates that result from computation according to the algorithm that is executed.
+This allows the system to reason about the most optimal distribution of state in the cluster which is then collocated with computation that can update the state. I further describe the architecture of the system and how the essential components are implemented.
+When updating the state from multiple different locations, consistency must be maintained in order to ensure that algorithm progresses as expected, which is the responsibility of the state to manage its consistency among all of its instances in the cluster. I implemented several schemes that target machine learning algorithms and their stochastic properties in order to limit the synchronization required, which decreases the network bandwidth required.
+At the end I summarize the experiments with the lessons learned and provide suggestions on how to further improve systems for large scale distributed machine learning.
+
+Improving speed, allowing more degrees of freedom (async program flow), ease the development of algorithms close to single machine implementations, compiler, letting the developer and researcher choose the strategy if necessary or implement heuristics <- challenge and motivation
 
 Background
 State Centric Programming Model
