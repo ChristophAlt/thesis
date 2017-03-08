@@ -1,44 +1,98 @@
+%!TEX root = ./../thesis.tex
+
 \chapter{Background}
 \label{c:background}
-Current state of the art distributed data processing systems like Apache Spark and Apache Flink are based on the dataflow concept which is introduced in Section \ref{s:dataflow}.
-The section introduces the concept behind dataflow and how it is utilized to provide distributed and fault tolerant execution of data processing tasks in a cluster of commodity hardware machines.
-Section \ref{s:ica} provides a formal introduction to iterative-convergent algorithms, a group of algorithms most of the commonly used algorithms in distributed machine learning belong to.
-The section provides the foundation for a more in depth discussion of commonly used algorithms and optimization techniques in Section \ref{s:distributed_ml}. The section also provides an overview over the current state of the art distributed machine learning frameworks and introduces the reader to the challenges that come with parallelizing machine learning algorithms across a cluster of parallel learners.
+The section should provide the reader with enough background to follow the arguments in the following chapters regarding state centric programming model and consistency management.
+This includes an understanding of algorithms and optimization techniques commonly used in practice (not limited to distributed machine learning), the current state-of-the-art in dataflow systems and how dataflow is used to provide a fault tolerant and distributed framework for large scale data processing and machine learning.
+Furthermore the field of distributed machine learning is explained in more detail, including the current state-of-the-art frameworks used for this purpose, their limitations and what challenges arise when machine learning algorithms are executed in a distributed fashion on multiple machines.
 
 
 \section{Algorithms and Optimization}
 
 \subsection{Iterative Convergent Algorithms}
 \label{ss:ica}
-Consider a supervised learning setup with a dataset $\textit{D} = \{z_1,\ldots,z_n\}$ with each example $z_i$ being represented by a pair $(x_i,y_i)$ consisting of an input $x_i$ and a scalar output $y_i$.
+Consider a supervised learning setup with a dataset $D = \{z_1,\ldots,z_n\}$ with each example $z_i$ being represented by a pair $(x_i,y_i)$ consisting of an input $x_i$ and a scalar output $y_i$.
 Consider also a loss function $\ell(\hat{y},y)$ quantifying the cost of predicting $\hat{y}$ when the true output is $y$. As a model, a family $F$ of functions $f_w(x)$ parameterized by a weight vector $w$ is chosen.
-The goal is to find a function $f \in F$ that minimizes the loss $Q = \frac{1}{n}\sum_{i=0}^{n} \ell(f_w(x_i),y_i)$.
+The goal is to find a function $f \in F$ that minimizes the loss $Q(z, w) = \ell(f_w(x),y)$. Emperical risk $E_n(f) = \frac{1}{n}\sum_{i=0}^{n}\ell(f(x_i),y_i)$ performance on training set, expected risk generalization performance.
+\begin{equation}
+E_n(f_w) = \frac{1}{n}\sum_{i=0}^{n} \ell(f_w(x_i),y_i)
+\label{eqn:emp_risk}
+\end{equation}
 In order to find an optimal solution many algorithms used in large scale machine learning such as regression, topic models, matrix factorization or neural networks employ either gradient based methods or markov chain monte carlo methods.
-In order to find the optimal solution those algorithms try to iteratively update the weight vector $w$. At each iteration \textit{t} an updated weight vector $w^{t}$ is computed based on the vector of the previous iteration $w^{(t-1)}$ and the data $D$. The resulting model $f_{w^{t}}$ is again a better summary of the data $D$ under the objective $Q$. Eq. \ref{eqn:grad_upd} shows the process of refining the model, with $\Delta$ being an arbitrary update function.
+To obtain the optimal solution those algorithms try to iteratively update the weight vector $w$. At each iteration $t$ an updated weight vector $w^{t}$ is computed based on the vector of the previous iteration $w^{(t-1)}$ and the data $D$. The resulting model $f_{w^{t}}$ is again a better summary of the data $D$ under the objective $Q$. Eq. \ref{eqn:delta_upd} shows the process of refining the model, with $\Delta$ being an arbitrary update function.
 \begin{equation}
 w^{t} = w^{(t-1)} + \Delta(w^{(t-1)},D)
-\label{eqn:grad_upd}
+\label{eqn:delta_upd}
 \end{equation}
-The update function depends on the algorithm employed by the analytic and can be seen as a procedure of obtaining a step towards a better model. At each iteration an update $\Delta w$ is computed and applied to the previous weight vector until a stopping condition is satisfied. The distance to the optimal solution or the objective difference between two iterations is monitored. When the difference is below a certain threshold the computation stops and the algorithm is said to be converged.
+The update function depends on the algorithm employed and can be viewed as a procedure of obtaining a step towards a better model. At each iteration an update $\Delta w$ is computed and applied to the previous weight vector until a stopping condition is satisfied. E.g. the distance to the optimal solution or the objective difference between two iterations is monitored. When the difference is below a certain threshold the computation stops and the algorithm is said to be converged.
+
 
 \subsection{Optimization}
 \label{ss:optimization}
-In order to arrive at an optimal solution represented by a function $f_{w^*} \in F$, various optimization techniques can be employed.
-The focus throughout this thesis lies on algorithms that solve linear loss optimization problems of the following objective form
+In order to estimate the optimal parameters $w^*$ of a function belonging to class $f_{w^*} \in F$, numerous techniques can be employed to estimate said parameters.
+In many cases, especially large scale machine learning methods such as (stochastic) gradient descent and coordinate ascent are used to iteratively optimized the parameterization of the chosen function class.
+Both techniques represent different rules of computing the update shown in \ref{eqn:delta_upd}.
+Gradient descent updates the weights $w$ at each iteration $t$ on the basis of the gradient of $E_n(f_w)$,
 \begin{equation}
-Q = \textit{$\ell$}(w) + \textit{r}(w)
-\label{eqn:lin_loss}
+w^{t} = w^{(t-1)} - \eta\frac{1}{n}\sum_{i=0}^{n}\nabla_wQ(z_i,w^{(t-1)})
+\label{eqn:gd_update}
 \end{equation}
-where $\ell$ and \textit{r} are both convex functions and $\ell$ is smooth. Commonly the term \textit{$\ell$} is an emperical loss over the data of the form $\sum_{i} \ell_{i}(w)$ and the term \textit{r} is a regularizer, e.g. $\textit{r}(w) = \lambda\|w\|_p$. Many of the beforementioned algorithms in machine learning can be expressed in this form, such as logistic and linear regression, lasso and sparse logistic regression and support vector machines.
-Depending on the structure of the problem, the most widely used techniques are stochastic gradient descent (SGD) and stochastic coordinate descent (SCD).
-Stochastic gradient descent 
+where $\eta$ is a chosen gain, often refered to as learning rate.
+While this achieves linear convergence under sufficient regularity assumptions and a sufficiently small learning rate $\eta$ \cite{dennis1996numerical} \cite{bottou2010large} a more simplified version is commonly used in practice, called stochastic gradient descent (SGD).
+Instead of computing the gradient $\nabla_wE_n(f_w)$ exactly, the gradient is estimated at each iteration $t$ based on a single randomly picked example $z_t$.
+\begin{equation}
+w^{t} = w^{(t-1)} - \eta_t\nabla_wQ(z_t,w^{(t-1)})
+\label{eqn:sgd_update}
+\end{equation}
+The assumption is that the gradient obtained by \ref{eqn:sgd_update} behaves similar to its expectiation in \ref{eqn:gd_update}.
+The convergence properties have been studied extensively and under mild conditions an almost sure convergence can be established when the learning rate satisfies the conditions $\sum_t\eta_t^2 < \infty$ and $\sum_t\eta_t = \infty$ \cite{bottou2010large}.
+The general structure of stochastic gradient descent is described in Algorithm \ref{alg:sgd}.
+
+\begin{algorithm}
+\caption{Stochastic Gradient Descent}\label{alg:sgd}
+\begin{algorithmic}[1]
+\State $k\gets 1$ and initialize $w^0 \in \mathbb{R}^d$
+\Repeat
+\For{}
+\State $w^{t} \gets w^{(t-1)} - \eta_t\nabla_wQ(z_t,w^{(t-1)})$
+\EndFor
+\Until{termination criteria satisfied}
+\end{algorithmic}
+\end{algorithm}
+
+Coordinate descent on the other hand iteratively tries to optimize a given objective by successively performing approximate minimization along a coordinate direction while keeping the other directions fixed.
+
+
+\begin{algorithm}
+\caption{Stochastic Coordinate Ascent}\label{alg:sca}
+\begin{algorithmic}[1]
+\State $k\gets 1$ and initialize $w^0 \in \mathbb{R}^d$
+\Repeat
+\For{}
+\State
+\EndFor
+\Until{termination criteria satisfied}
+\end{algorithmic}
+\end{algorithm}
+
 
 \subsection{CoCoA}
-- start from minibatch and argue that increased minibatch size degrades performance
+Due to their widespread application in large scale machine learning and recent advances in the field of distributed optimization the thesis focuses on linear regularized objectives.
+One of the advances is the publication of a framework for distributed optimization called CoCoA (Communication-efficient distributed dual Coordinate Ascent) \cite{Jaggi2014}, which leverages the primal-dual structure of the beforementioned optimization problems.
+The proposed strategy helps effectively combining the results from local computation without having to deal with conflicts resulting from similar updates computed on other machines.
+The framework supports objectives of the form
+\begin{equation}
+Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
+\label{eqn:lin_loss}
+\end{equation}
+where $\ell$ is convex and smooth and $r$ is assumed to be seperable. In this context seperable means $r(x) = \sum_{i=0}^nr_i(x_i)$.
+Commonly the term $\ell$ is an emperical loss over the data of the form $\sum_{i} \ell(f_w(x_i), y_i)$ and the term $r$ is a regularizer, e.g. $r(w) = \lambda\|w\|_p$ where $\lambda$ is a regularization parameter.
+Many of the beforementioned algorithms in machine learning can be expressed in this form, such as logistic and linear regression, lasso and sparse logistic regression and support vector machines.
+
+
 
 \section{Dataflow Systems}
 \label{s:dataflow}
-
 
 \section{Distributed Machine Learning}
 \label{s:distributed_ml}
@@ -51,7 +105,7 @@ List the challenges of distributed ML (synchronization/consistency, distributing
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{img/param_server.eps}
+\includegraphics[width=0.4\textwidth]{img/param_server.png}
 \caption{Parameter Server}
 \label{fig:param_server}
 \end{figure}

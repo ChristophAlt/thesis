@@ -475,7 +475,7 @@ at the
 \unvbox\@titlesupervisor
 \par
 \vfill
-\signature{Accepted by}{\@chairmanname \\ \@chairmantitle}
+\signature{Certified by}{\@chairmanname \\ \@chairmantitle}
 \vfill
 \end{titlepage}}
 
