@@ -2,9 +2,9 @@
 
 \chapter{Background}
 \label{c:background}
-The section should provide the reader with enough background to follow the arguments in the following chapters regarding state centric programming model and consistency management.
+This section provides the necessary background to follow the argumentation in the following chapters regarding state centric programming model and consistency management.
 This includes an understanding of algorithms and optimization techniques commonly used in practice (not limited to distributed machine learning), the current state-of-the-art in dataflow systems and how dataflow is used to provide a fault tolerant and distributed framework for large scale data processing and machine learning.
-Furthermore the field of distributed machine learning is explained in more detail, including the current state-of-the-art frameworks used for this purpose, their limitations and what challenges arise when machine learning algorithms are executed in a distributed fashion on multiple machines.
+Furthermore the field of distributed machine learning is explained in more detail, including the current state-of-the-art frameworks used for this purpose, their limitations and challenges that arise when machine learning algorithms are parallelized in a distributed fashion among multiple physical machines.
 
 
 \section{Algorithms and Optimization}
@@ -61,7 +61,7 @@ The general structure of stochastic gradient descent is described in Algorithm \
 \end{algorithm}
 
 Coordinate descent on the other hand iteratively tries to optimize a given objective by successively performing approximate minimization along a coordinate direction while keeping the other directions fixed.
-
+TODO: give a more in detail explanation and provide algorithm description
 
 \begin{algorithm}
 \caption{Stochastic Coordinate Ascent}\label{alg:sca}
@@ -75,40 +75,157 @@ Coordinate descent on the other hand iteratively tries to optimize a given objec
 \end{algorithmic}
 \end{algorithm}
 
+\subsection{Regularization}
+
+\begin{equation}
+Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
+\label{eqn:l1_reg}
+\end{equation}
+
+\begin{equation}
+Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
+\label{eqn:l2_reg}
+\end{equation}
+
+\begin{equation}
+Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
+\label{eqn:elastic_net}
+\end{equation}
+
+NOTES:
+- regularization in general
+- L1, L2 regularization
+- elastic-net as special case
+- convexity properties
+- mini-batch setup algorithm
+
 
 \subsection{CoCoA}
 Due to their widespread application in large scale machine learning and recent advances in the field of distributed optimization the thesis focuses on linear regularized objectives.
-One of the advances is the publication of a framework for distributed optimization called CoCoA (Communication-efficient distributed dual Coordinate Ascent) \cite{Jaggi2014}, which leverages the primal-dual structure of the beforementioned optimization problems.
-The proposed strategy helps effectively combining the results from local computation without having to deal with conflicts resulting from similar updates computed on other machines.
-The framework supports objectives of the form
+The theroretical contemplation as well as the experiments in Section \ref{c:experiments} focus on a framework for convex optimization problems called CoCoA (Communication-efficient distributed dual Coordinate Ascent) \cite{Jaggi2014} and its successors CoCoA$^+$\cite{smith2015l1} and PROXCoCoA$^+$\cite{smith2016cocoa}.
+CoCoA as described in Algorithm \ref{alg:cocoa} provides a communication-efficient framework for solving convex optimization problems of the following form
 \begin{equation}
-Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
+\min_{\alpha} Q(z,\alpha) = \ell(f_\alpha(x),y) + r(\alpha)
 \label{eqn:lin_loss}
 \end{equation}
-where $\ell$ is convex and smooth and $r$ is assumed to be seperable. In this context seperable means $r(x) = \sum_{i=0}^nr_i(x_i)$.
+in a distributed setting.
+Where $\alpha$ denotes the weight vector, $\ell$ is convex and smooth and $r$ is assumed to be seperable, which in this context means $r(x) = \sum_{i=0}^nr_i(x_i)$.
 Commonly the term $\ell$ is an emperical loss over the data of the form $\sum_{i} \ell(f_w(x_i), y_i)$ and the term $r$ is a regularizer, e.g. $r(w) = \lambda\|w\|_p$ where $\lambda$ is a regularization parameter.
-Many of the beforementioned algorithms in machine learning can be expressed in this form, such as logistic and linear regression, lasso and sparse logistic regression and support vector machines.
+Many algorithms in machine learning can be expressed in this form, such as logistic and linear regression, lasso and sparse logistic regression and support vector machines.
 
+CoCoA leverages the primal-dual relation which allows for solving the problem in either the primal or dual formulation.
+For some application where the number of examples $n$ is much smaller than the number of features $d$, $n way lesser than d$, solving the problem in the dual may be easier because this problem has $n$ variables to optimize, compared to $d$ for the primal.
+The CoCoA framework leverages Fenchel-Rockafellar duality to quadratically approximate the global objective in \ref{eqn:lin_loss}.
+This leads to separability of the problem over the coordinates of $\alpha$ and the partitions, where the local subproblems are similar in structure to the global problem and also exploit second order information within the local data partition.
+Therefore the dataset $D \in \mathbb{R}^{d \times n}$ can be distributed either example-wise or feature-wise over $K$ physical machines according to the partitioning $\{P\}_{k=1}^K$, depending which is more efficient to solve.
+The size of the partition on machine $k$ is denoted by $n_k = \mid P_k \mid$.
+The key to efficient distributed optimization is that the local subproblems can be solved independently on each worker in parallel and only a single parameter vector $v = \nabla f(D\alpha) \in \mathbb{R}^n$ needs to be shared after each round in order to communicate the progress of each local worker on its subproblem.
+As the data stays local and only a single parameter vector of dimension $n$ needs to be exchanged, CoCoA is very communication efficient and as the local subproblems are very similar to the global problem, arbitrary solvers can be employed as well.
+The local quadratic subproblem has the following form
+\begin{equation}
+\min_{\alpha_{[k]} \in \mathbb{R}^n} \zeta_k^{\sigma^\prime}(\Delta\alpha_{[k]}, v, \alpha_{[k]}),
+\label{eqn:min_local_subp}
+\end{equation}
+where
+\begin{equation}
+\zeta_k^{\sigma^\prime}(\Delta\alpha_{[k]}, v, \alpha_{[k]}) = \frac{1}{K}f(v) + w^TA_{[k]}\Delta\alpha_{[k]} + \frac{\sigma^\prime}{2\tau}\|A_{[k]}\Delta\alpha_{[k]}\|^2 + \sum_{i \in P_k}g_i(\alpha_i + \Delta\alpha_{[k]_i}),
+\label{eqn:local_subp}
+\end{equation}
+with $A_{[k]}$ refering to the the local data and $w = \nabla f(D\alpha) \in \mathbb{R}^n$.
+$\alpha_{[k]_i}$ denotes the local weight vector stored on machine $k$ with $\alpha_{[k]_i} = \alpha_i$ if $i \in P_k$ otherwise $\alpha_{[k]_i} = 0$.
+\begin{algorithm}
+\caption{CoCoA Framework}\label{alg:cocoa}
+\begin{algorithmic}[1]{}
+\DATA Data matrix $D$, distributed column-wise according to partition $\{P_k\}_{k=1}^K$
+\INPUT aggregation parameter $\gamma \in (0,1]$, subproblem parameter $\sigma^\prime$
+\INIT $t \gets 0$, $\alpha^{(0)} \gets 0 \in \mathbb{R}^n$, $v^{(0)} \gets 0 \in \mathbb{R}^d$ 
+\Repeat
+\State $t \gets t + 1$
+\For{$k \in \{1,\ldots,K\}$}
+\State obtain an approximate solution $\Delta\alpha_{[k]}$ for the local subproblem \ref{eqn:min_local_subp}
+\State update local weights $\alpha_{[k]}^{t} = \alpha_{[k]}^{t-1} + \gamma\Delta\alpha_{[k]}$
+\State update shared parameter vector $\Delta v_k = A_{[k]}\Delta\alpha_{[k]}$
+\EndFor
+\State compute $v^{t} = v^{t-1} + \gamma\sum_{k=1}^K\Delta v_k$
+\Until{termination criteria satisfied}
+\end{algorithmic}
+\end{algorithm}
+In summary the framework provides a procedure to effectively combine the results from local computation without having to deal with conflicts resulting from similar updates computed on other machines.
+
+NOTES:
+- local solver (batch coordinate descent)
+- elastic-net in the cocoa setup
+- algorithm parameters sigma and gamma
 
 
 \section{Dataflow Systems}
 \label{s:dataflow}
+NOTES:
+- description of dataflow in general
+- architecture of dataflow systems, Apache Spark and Flink
+- description of RDDs
 
-\section{Distributed Machine Learning}
+\section{The Challenges of Distributed Machine Learning}
 \label{s:distributed_ml}
-Distiributed machine learning posses a number of unique challenges resulting from the fact that most iterative convergent algorithms are sequential in nature. Parallelizing such an algorithm can be done by exploiting either the stochastic nature inherent to these algorithms or by exploiting decomposability of model parameters. Doing so leaves the developer with numerous possibilities and responsibilities regarding the distribution of data accross the workers, the formation of workers and the communication and synchronization scheme to be employed. Various frameworks have been published which all tackle these problems in a specific way. Often focusing on a fixed master/worker architecture with specific algorithsm.
+While the execution of iterative-convergent algorithms on a single machine is straightforward, time constraints and the ever growing amount of data to be processed require these algorithms to be executed in parallel.
+This posses a number of challenges which are often observed when parallelizing algorithms, such as partitioning the state used in the algorithm as well as communication and consistency management.
+While intra-node parallelism in multi-core and multi-processor systems can mitigate these problems, it is not satisfying in terms of cost and scalability.
+On the other hand, inter-node parallelism has the desired properties but can not be easily parallelized.
+Therefore in the past decade a lot of research has focused on inventing new systems to deal with those challenges and make distributed machine learning more efficient and scalable.
 
-List the challenges of distributed ML (synchronization/consistency, distributing state and model, choosing the best formation of workers (maybe different jobs (computing updates, merging updates))), choosing the best communcation model, show picture
-
-
-\subsection{Parameter Server}
-
+\subsection{State Partitioning}
+Depending on the algorithm and optimization technique employed to solve for the optimal solution, there exist multiple approches to distribute the state used in the algorithm (e.g. input data, model parameters).
+As depicted in Figure \ref{fig:data_parallelism}, an initial approach by Zinkevich et. al \cite{zinkevich2010parallelized} introduced a data-parallel approach for computing stochastic gradient descent (SGD) in the MapReduce framework.
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{img/param_server.png}
+\includegraphics[width=0.9\textwidth]{img/data_parallelism.png}
+\caption{Data parallelism with MapReduce}
+\label{fig:data_parallelism}
+\end{figure}
+In this context, data-parallelism means that $K$ machines work in parallel on the input data $D$, hence the data is distributed according to partition $\{P_k\}_{k=1}^K$ into local parts $D^k$.
+Each machine maintains a local model $w_k$ that is iteratively refined based on Eq. \ref{eqn:delta_upd} until convergence.
+The local update is of the form
+\begin{equation}
+w_k^{t} = w_k^{(t-1)} + \Delta(w_k^{(t-1)},D^k)
+\label{eqn:local_delta_upd}
+\end{equation}
+The final model $w_{final}$ is then obtained in the reduce step by averaging over all local models $w_{k}$.
+\begin{equation}
+w_{final} = \frac{1}{K}\sum_{k=1}^{K}w_{k}
+\label{eqn:avg_sgd}
+\end{equation}
+Even though this approach works well in practice and gives considerable good results, it suffers from two limitations.
+First, if the size of a local model $w_k$ exceeds the available memory on a single machine, the algorithm can not work properly.
+This is the case e.g. for topic models at web scale or deep neural networks used in the Google Brain project \cite{dean2012large}, consisting of billions of parameters.
+Second, even though the scalability improved by introducing data-parallelism the lack of parameter exchange during runtime can lead to suboptimal performance \cite{xing2015strategies} as the algorithm essentially resembles batch gradient descent, which is known to have suboptimal convergence properties compared to mini-batch or stochastic gradient descent (cite).
+In order to improve the performance, a system must be able to communicate more frequently and it must also be able to partition a model accross multiple machines to scale with the size of the model.
+Following these requirements resulted in the publication of the parameter server \cite{li2014scaling}, which provides a framework for inter-node parallelism of iterative convergent algorithms.
+
+\subsection{Communication}
+As depicted in Figure \ref{fig:param_server}, the parameter server is essentially an entity responsible for storing and managing model parameters.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{img/param_server.png}
 \caption{Parameter Server}
 \label{fig:param_server}
 \end{figure}
+The server itself may consist of multiple nodes as well. In this case, for optimal throughput and fault tolerance, the model is partitioned across all parameter server nodes. Similar to a distributed key-value store the parameters are accessible to all workers by their indices. Each worker maintains a local partition of the data \textit{D}, from which it computes parameter updates according to Eq. \ref{eq:delta_w}.
+\begin{equation}
+\Delta W_{k} = \Delta(W^{(t-1)}_{k}, D_{k})
+\label{eq:delta_w}
+\end{equation}
+After an update is computed, it's pushed back to the parameter server and applied to the stored parameters. All this happens concurrently with updates sent by other workers. This enables all workers to work in parallel on the iterative parameter refinement while asynchronously updating and retrieving the parameters necessary for computing the next update.
+
+
+regarding the partitioning of the data involved such as input data and model parameters.
+
+Distributed machine learning posses a number of unique challenges resulting from the fact that most iterative convergent algorithms are sequential in nature. Parallelizing such an algorithm can be done by exploiting either the stochastic nature inherent to these algorithms or by exploiting decomposability of model parameters. Doing so leaves the developer with numerous possibilities and responsibilities regarding the distribution of data accross the workers, the formation of workers and the communication and synchronization scheme to be employed. Various frameworks have been published which all tackle these problems in a specific way. Often focusing on a fixed master/worker architecture with specific algorithsm.
+
+
+NOTES:
+- check BDSA paper for additional input
+- describe the general setup of distributed machine learning, data partitioning, model partitioning, multiple workers in a distributed environment
+- List the challenges of distributed ML (synchronization/consistency, distributing state and model, choosing the best formation of workers (maybe different jobs (computing updates, merging updates))), choosing the best communcation model, show picture
 
 
 \subsection{Consistency}
