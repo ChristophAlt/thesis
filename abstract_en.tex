@@ -15,15 +15,13 @@ In recent years, machine learning emerged as one of the most important parts of 
 While the rise of artificial intelligence continues, the amount of data to be processed grows even faster.
 Unsurprisingly a lot of research has since focussed on methods to parallelize commonly used algorithms and new systems and frameworks have been released to improve the performance of distributed machine learning.
 Even though there has been a lot of progress towards more efficient systems, many of the state-of-the-art systems still have limitations.
-
 Current frameworks are neither expressible nor flexible enough to allow efficient development of distributed machine learning algorithms, which makes them unsuited for experimentation and quick prototyping even though this is an essential part to optimize performance.
 On the other hand, most parallelization schemes exploit the algorithms stochastic nature to allow for parallel execution at the expense of lowered consistency among the distributed data structures.
 Even though this does not necessarily affect quality of the results, an improper level of consistency can severely affect algorithm performance, resulting in a non optimal convergence rate and therefore increased runtime.
 
-The thesis introduces a novel framework for distributed machine learning, which is using a state centric programming model with yield semantics.
-This programming model allows the user to focus on the key parts of developing a distributed machine learning algorithm, namely update communication, update merging and consistency management among distributed workers while the system takes care of distributing the computation in an optimal fashion.
-The experiments show increase performance compared to a state-of-the-art data processing system like Apache Spark and at the same time reduce the effort of developing and experimenting with distributed machine learning algorithms at scale.
+This thesis introduces a novel framework for distributed machine learning, which is based on a state centric programming model with yield semantics.
+The programming model allows the user to focus on the key parts of developing distributed machine learning algorithms, namely update communication, update merging and consistency management among distributed workers, while the system takes care of distributing the computation in an optimal fashion.
+The experiments show increased performance compared to state-of-the-art data processing systems like Apache Spark and at the same time reduce the effort of developing and experimenting with distributed machine learning algorithms at scale.
 What were the key findings or results?
 State of the art results, rapid protoyping and comparison of synchronization schemes
-
 What is the significance or implications of the results?

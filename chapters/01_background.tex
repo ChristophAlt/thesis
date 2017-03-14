@@ -19,7 +19,7 @@ E_n(f_w) = \frac{1}{n}\sum_{i=0}^{n} \ell(f_w(x_i),y_i)
 \label{eqn:emp_risk}
 \end{equation}
 In order to find an optimal solution many algorithms used in large scale machine learning such as regression, topic models, matrix factorization or neural networks employ either gradient based methods or markov chain monte carlo methods.
-To obtain the optimal solution those algorithms try to iteratively update the weight vector $w$. At each iteration $t$ an updated weight vector $w^{t}$ is computed based on the vector of the previous iteration $w^{(t-1)}$ and the data $D$. The resulting model $f_{w^{t}}$ is again a better summary of the data $D$ under the objective $Q$. Eq. \ref{eqn:delta_upd} shows the process of refining the model, with $\Delta$ being an arbitrary update function.
+To obtain the optimal solution those algorithms try to iteratively update the weight vector $w$. At each iteration $t$ an updated weight vector $w^{t}$ is computed based on the vector of the previous iteration $w^{(t-1)}$ and the data $D$. The resulting model $f_{w^{t}}$ is again a better summary of the data $D$ under the objective $Q$. \ref{eqn:delta_upd} shows the process of refining the model, with $\Delta$ being an arbitrary update function.
 \begin{equation}
 w^{t} = w^{(t-1)} + \Delta(w^{(t-1)},D)
 \label{eqn:delta_upd}
@@ -175,18 +175,18 @@ Therefore in the past decade a lot of research has focused on inventing new syst
 
 \subsection{State Partitioning}
 Depending on the algorithm and optimization technique employed to solve for the optimal solution, there exist multiple approches to distribute the state used in the algorithm (e.g. input data, model parameters).
-As depicted in Figure \ref{fig:data_parallelism}, an initial approach by Zinkevich et. al \cite{zinkevich2010parallelized} introduced a data-parallel approach for computing stochastic gradient descent (SGD) in the MapReduce framework.
+As depicted in Figure \ref{fig:data_parallelism}, an initial approach by Zinkevich et. al \cite{zinkevich2010parallelized} introduced a data-parallel approach for computing stochastic gradient descent (SGD) via the MapReduce framework.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.9\textwidth]{img/data_parallelism.png}
-\caption{Data parallelism with MapReduce}
+\caption{Data-parallelism via MapReduce}
 \label{fig:data_parallelism}
 \end{figure}
 In this context, data-parallelism means that $K$ machines work in parallel on the input data $D$, hence the data is distributed according to partition $\{P_k\}_{k=1}^K$ into local parts $D^k$.
-Each machine maintains a local model $w_k$ that is iteratively refined based on Eq. \ref{eqn:delta_upd} until convergence.
+Each machine maintains a local model $w_k$ that is iteratively refined based on \ref{eqn:delta_upd} until convergence, using only the local part of the input data $D^k$.
 The local update is of the form
 \begin{equation}
-w_k^{t} = w_k^{(t-1)} + \Delta(w_k^{(t-1)},D^k)
+w_k^{t} = w_k^{t-1} + \Delta(w_k^{t-1},D^k)
 \label{eqn:local_delta_upd}
 \end{equation}
 The final model $w_{final}$ is then obtained in the reduce step by averaging over all local models $w_{k}$.
@@ -197,44 +197,91 @@ w_{final} = \frac{1}{K}\sum_{k=1}^{K}w_{k}
 Even though this approach works well in practice and gives considerable good results, it suffers from two limitations.
 First, if the size of a local model $w_k$ exceeds the available memory on a single machine, the algorithm can not work properly.
 This is the case e.g. for topic models at web scale or deep neural networks used in the Google Brain project \cite{dean2012large}, consisting of billions of parameters.
-Second, even though the scalability improved by introducing data-parallelism the lack of parameter exchange during runtime can lead to suboptimal performance \cite{xing2015strategies} as the algorithm essentially resembles batch gradient descent, which is known to have suboptimal convergence properties compared to mini-batch or stochastic gradient descent (cite).
+Second, even though the scalability improved by introducing data-parallelism the lack of parameter exchange during runtime can lead to suboptimal performance \cite{xing2015strategies} as the algorithm essentially resembles batch gradient descent, which is known to have suboptimal convergence properties compared to mini-batch or stochastic gradient descent \cite{bottou2010large} \cite{smith2016cocoa}.
 In order to improve the performance, a system must be able to communicate more frequently and it must also be able to partition a model accross multiple machines to scale with the size of the model.
-Following these requirements resulted in the publication of the parameter server \cite{li2014scaling}, which provides a framework for inter-node parallelism of iterative convergent algorithms.
+Following those requirements resulted in the publication of the parameter server \cite{li2014scaling}, which provides a framework for inter-node parallelism of iterative convergent algorithms.
 
 \subsection{Communication}
-As depicted in Figure \ref{fig:param_server}, the parameter server is essentially an entity responsible for storing and managing model parameters.
+As depicted in Figure \ref{fig:param_server}, the parameter server is a group of an arbitrary number of machines $\{S\}_{l=1}^L$, e.g. $S = \{S_1, S_2\}$ where each member of the group is responsible for storing a part of the model $\{w\}_{l=1}^L$ and making it accessible to the workers $\{W\}_{k=1}^K$, e.g. $W = \{W_1, W_2, W_3\}$, via a defined interface that is similar to a key-value store.
+The model is partitioned among the machines of the server to provide optimal throughput, fault tolerance and to mitigate the effect of a model exceding the memory of a single machine.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.7\textwidth]{img/param_server.png}
 \caption{Parameter Server}
 \label{fig:param_server}
 \end{figure}
-The server itself may consist of multiple nodes as well. In this case, for optimal throughput and fault tolerance, the model is partitioned across all parameter server nodes. Similar to a distributed key-value store the parameters are accessible to all workers by their indices. Each worker maintains a local partition of the data \textit{D}, from which it computes parameter updates according to Eq. \ref{eq:delta_w}.
+Each of the workers maintains a local partition of the input data $\{D\}_{k=1}^K$, which is used to iteratively compute updates for the parameters $w$ according to
 \begin{equation}
-\Delta W_{k} = \Delta(W^{(t-1)}_{k}, D_{k})
-\label{eq:delta_w}
+\Delta w_{k_i}^{t} = \Delta(w_{k_i}^{t-1},D^k).
+\label{eqn:local_delta_upd_param}
 \end{equation}
-After an update is computed, it's pushed back to the parameter server and applied to the stored parameters. All this happens concurrently with updates sent by other workers. This enables all workers to work in parallel on the iterative parameter refinement while asynchronously updating and retrieving the parameters necessary for computing the next update.
+In the parameter server setup, the local state $w$ acts as a cache for global parameters in order to reduce network usage.
+Therefore, depending on the caching policy, $w_{k_i}$ can either be directly read either the local cache or must be retrieved from the parameter server.
+Additionally to applying the update to the local model $w$, the difference $\Delta w_{k_i}^{t}$ is published to the parameter server as well, which takes care of applying it to the corresponding entry $w_i$ to make the update available to all other workers $W_i$, $i \neq k$.
+In case multiple updates for the same parameter $w_i$ arive at the same time, a user defined function (UDF) needs to be provided to the server, which takes care of combining those updates so it can be applied to the parameter stored on the server.
+The procedure of retrieving, updating and publishing is executed concurrently on all workers.
+This enables all workers to work in parallel on the iterative parameter refinement while asynchronously updating and retrieving the parameters necessary for computing the next update.
+The procedure of updating the model in parallel is also known as model-parallelism.
 
-
-regarding the partitioning of the data involved such as input data and model parameters.
-
-Distributed machine learning posses a number of unique challenges resulting from the fact that most iterative convergent algorithms are sequential in nature. Parallelizing such an algorithm can be done by exploiting either the stochastic nature inherent to these algorithms or by exploiting decomposability of model parameters. Doing so leaves the developer with numerous possibilities and responsibilities regarding the distribution of data accross the workers, the formation of workers and the communication and synchronization scheme to be employed. Various frameworks have been published which all tackle these problems in a specific way. Often focusing on a fixed master/worker architecture with specific algorithsm.
-
+While this schema has been proven to work well in practice (some numbers), a couple of issues still remain when running iterative-convergent algorithms at scale using the parameter server.
+According to \cite{wei2015managed} this can be viewed as finding the trade-off between algorithm throughput and data throughput.
+In other words the challenge is to find a balance between the quality of parameter refinements and the quantity at which they are generated.
+As with distributed systems in general, network commmunication is the bottleneck in distributed machine learning as well.
+Even though due to the stochastic nature of many machine learning algorithms, the communication can be reduce compared to the exact serial algorithm, it has been proven that fresher model parameters increase the algorithm throughput per iteration \cite{langford2009slow}.
+Therefore, in order to guarantee an optimal algorithm throughput, a worker should always work with the latest parameters.
+On the other hand, exchanging parameter updates over the network more frequently is time consuming, which leaves less time to run local computation and therefore essentially decreases the data throughput due to increased time spent on network management.
+The second issue concerns the relaxed consistency among participating workers due to reduced communication compared to the serial algorithm.
+Though this is what makes the parameter server concept so powerful because it increases the data throughput by relaxing the consistency requirements when updating parameters on the server.
+By decoupling the progress of workers it is possible to minimize the effect of stragglers and synchronization delay between workers \cite{ananthanarayanan2013effective}.
+However, as discussed in the next section, combining model parameters obtained from workers with greatly differing algorithm progress can have a detrimental effect on algorithm throughput.
+Finding the balance between algorithm throughput and data throughput can therefore be seen as consistency management.
 
 NOTES:
-- check BDSA paper for additional input
+- what has to be made clear:
+	- a system that improves upon state of the art must provide the following properties: resemble common machine learning pipelines (e.g. distributed control flow, loop constructs, arbitrary consistency, arbitrary structure of workers, arbitrary aggregation scheme such as tree or group aggregation)
 - describe the general setup of distributed machine learning, data partitioning, model partitioning, multiple workers in a distributed environment
 - List the challenges of distributed ML (synchronization/consistency, distributing state and model, choosing the best formation of workers (maybe different jobs (computing updates, merging updates))), choosing the best communcation model, show picture
 
 
 \subsection{Consistency}
-
-The most important part of any distributed system is the synchronization strategy used to ensure consistency among multiple nodes concurrently accessing and updating the parameters stored on the parameter server. There are multiple schemes to synchronize nodes during the iterative parameter refinement. \textit{Bulk synchronous parallelization (BSP)} leads to the best algorithm throughput (e.g. convergence achieved over the number of data points processed). Essentially each worker must finish its iteration and push all updates to the parameter server. The server then computes a refined model according to Eq. \ref{eq:bsp_upd} and each node retrieves the updated parameters before beginning the next iteration. This synchronization scheme guarantees consistency among all nodes at all times.
+The most important part of any distributed system is the synchronization strategy used to ensure consistency among multiple machines concurrently accessing and updating some shared state.
+In distributed machine learning the shared state is the model, which is for example stored in a parameter server and continously refined by updates locally computed by a worker and then published to the server.
+There are three schemes used to synchronize workers during the iterative parameter refinement.
+\textit{Bulk synchronous parallelization (BSP)} leads to the best algorithm throughput (convergence achieved per number of examples processed).
+In this scheme, all workers are required to finish their current iteration and at the end successfully publish all updates to the parameter server.
+The server then computes a refined model $w^t$ according to \ref{eqn:bsp_upd} and each worker retrieves the updated parameters before beginning the next iteration.
+This synchronization scheme guarantees consistency among all nodes at all times.
 \begin{equation}
-W^{t} = W^{(t-1)} + \frac{1}{K}\sum_{k=1}^{K}\Delta(W^{(t-1)}_{k}, D_{k})
-\label{eq:bsp_upd}
+w^{t} = w^{t-1} + \frac{1}{K}\sum_{k=1}^{K}\Delta(w^{t-1}_{k}, D{k})
+\label{eqn:bsp_upd}
 \end{equation}
-While this synchronization strategy essentially recovers the sequential algorithm for a single machine and has the same convergence properties and guarantees, it suffers from a severe limitation when used in a distributed setup \cite{langford2009slow}. Imagine one of the workers is for some reason a lot slower than the others. Due to the synchronization strategy, the other workers have to wait for this particular worker to complete its iteration. This is well known as the straggler problem \cite{ananthanarayanan2013effective} and can seriously affect performance in a distributed environment, because the progress is limited by the slowest node in the cluster.
-The second strategy is \textit{total asynchronous parallelization (TAP)}. Similar to BSP, all nodes push their parameter updates to the server after each iteration but in this case, the changes are applied to the model immediately. No waiting for other workers is required, resulting in a very high data throughput. The straggler problem can be mitigated by this synchronization scheme as well, depicted in Figure \ref{fig:workers}. Even though worker 3 is a straggler, the remaining workers can continue with their next iterations without waiting for slower workers. Although this consistency scheme seems to work quite well in practice \cite{li2014scaling}, it lacks formal convergence guarantees and can even diverge \cite{dai2014high}. The reason is that no bound exists for a situation where the divergence in iterations between the slowest and the fastest worker is unbound.
-A middle ground between bulk synchronous parallelization and total asynchronous parallelization is \textit{stale synchronous parallel (SSP)} \cite{ho2013more} or \textit{bounded staleness (BS)}. As shown in Figure \ref{fig:bsp_workers}, BSP introduces a maximum delay, or staleness threshold, of $\Delta_{max}$ between the slowest and fastest node. This overcomes the limitation of the TAP approach by introducing a bound on the number of iterations. Formal convergence guarantees can be restored while still maintaining the flexibility of asynchronous parallelization and limiting the straggler problem \cite{cipar2013solving}.
+While this synchronization strategy essentially recovers the sequential algorithm for a single machine and has the same convergence properties and guarantees, it suffers from a severe limitation when used in a distributed setup \cite{langford2009slow}.
+In case one of the workers is for some reason a lot slower than the others the synchronization barrier imposed by BSP forces all workers to wait for this particular worker in the group.
+This is well known as the straggler problem \cite{ananthanarayanan2013effective} and can seriously affect performance in a distributed environment, because the progress is limited by the slowest node in the cluster.
+BSP is commonly used in MapReduce frameworks such as Hadoop and data-flow systems like Apache Spark and Apache Flink to ensure correct program execution.
+The second strategy is known as \textit{total asynchronous parallelization (TAP)}.
+Similar to BSP, all workers publish their locally computed parameter updates to the server after each iteration but in this case the changes are applied to the model immediately.
+Therefore no waiting for other workers is required, resulting in a very high data throughput.
+The straggler problem can be mitigated by this synchronization scheme as well, as depicted in Figure \ref{fig:tap_straggler}.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{img/tap_straggler.png}
+\caption{Straggler in TAP}
+\label{fig:tap_straggler}
+\end{figure}
+Even though worker $W_3$ is a straggler, which would have prevented the remaining workers $\{W_2, W_3\}$ from proceeding beyond the synchronization barrier of iteration 1, the workers can continue with their next iterations without waiting for the slower worker.
+Although this consistency scheme seems to work quite well in practice \cite{li2014scaling}, it lacks formal convergence guarantees and can even diverge \cite{dai2014high}.
+This stems from the fact that no theoretical convergence bound can be established as the divergence in iteration between workers is unbound.
+A middle ground between bulk synchronous parallelization and total asynchronous parallelization is \textit{stale synchronous parallel (SSP)} \cite{ho2013more} or \textit{bounded staleness (BS)}.
+As shown in Figure \ref{fig:tap_straggler}, SSP introduces a maximum delay, or staleness threshold, of $\tau_{max}$ between the slowest and fastest node.
+In this example, worker $W_1$ is blocked and can not proceed beyond iteration 3 as the slowest worker $W_3$ has not finished its first iteration.
+As soon as worker $W_3$ has completed its first iteration, $W_1$ is unblocked and can proceed.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{img/ssp_straggler.png}
+\caption{Straggler in SSP}
+\label{fig:ssp_straggler}
+\end{figure}
+SSP overcomes some of the limitations of TAP by introducing a bound on divergence in number of iterations between workers.
+Formal convergence guarantees can be restored while still maintaining the flexibility of asynchronous parallelization and limiting but not completely preventing the straggler problem \cite{cipar2013solving}.
+In general this helps to compensate e.g. update related communication between iterations or fluctuations in worker performance, which explains why SSP works so well in practice.
