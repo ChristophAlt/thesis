@@ -272,16 +272,16 @@ The straggler problem can be mitigated by this synchronization scheme as well, a
 Even though worker $W_3$ is a straggler, which would have prevented the remaining workers $\{W_2, W_3\}$ from proceeding beyond the synchronization barrier of iteration 1, the workers can continue with their next iterations without waiting for the slower worker.
 Although this consistency scheme seems to work quite well in practice \cite{li2014scaling}, it lacks formal convergence guarantees and can even diverge \cite{dai2014high}.
 This stems from the fact that no theoretical convergence bound can be established as the divergence in iteration between workers is unbound.
-A middle ground between bulk synchronous parallelization and total asynchronous parallelization is \textit{stale synchronous parallel (SSP)} \cite{ho2013more} or \textit{bounded staleness (BS)}.
-As shown in Figure \ref{fig:tap_straggler}, SSP introduces a maximum delay, or staleness threshold, of $\tau_{max}$ between the slowest and fastest node.
-In this example, worker $W_1$ is blocked and can not proceed beyond iteration 3 as the slowest worker $W_3$ has not finished its first iteration.
-As soon as worker $W_3$ has completed its first iteration, $W_1$ is unblocked and can proceed.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{img/ssp_straggler.png}
 \caption{Straggler in SSP}
 \label{fig:ssp_straggler}
 \end{figure}
+A middle ground between bulk synchronous parallelization and total asynchronous parallelization is \textit{stale synchronous parallel (SSP)} \cite{ho2013more} or \textit{bounded staleness (BS)}.
+As shown in Figure \ref{fig:tap_straggler}, SSP introduces a maximum delay, or staleness threshold, of $\tau_{max}$ between the slowest and fastest node.
+In this example, worker $W_1$ is blocked and can not proceed beyond iteration 3 as the slowest worker $W_3$ has not finished its first iteration.
+As soon as worker $W_3$ has completed its first iteration, $W_1$ is unblocked and can proceed.
 SSP overcomes some of the limitations of TAP by introducing a bound on divergence in number of iterations between workers.
 Formal convergence guarantees can be restored while still maintaining the flexibility of asynchronous parallelization and limiting but not completely preventing the straggler problem \cite{cipar2013solving}.
 In general this helps to compensate e.g. update related communication between iterations or fluctuations in worker performance, which explains why SSP works so well in practice.
