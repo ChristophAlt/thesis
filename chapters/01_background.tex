@@ -27,7 +27,7 @@ w^{t} = w^{(t-1)} + \Delta(w^{(t-1)},D)
 The update function depends on the algorithm employed and can be viewed as a procedure of obtaining a step towards a better model. At each iteration an update $\Delta w$ is computed and applied to the previous weight vector until a stopping condition is satisfied. E.g. the distance to the optimal solution or the objective difference between two iterations is monitored. When the difference is below a certain threshold the computation stops and the algorithm is said to be converged.
 
 
-\subsection{Optimization}
+\subsection{Convex Optimization}
 \label{ss:optimization}
 In order to estimate the optimal parameters $w^*$ of a function belonging to class $f_{w^*} \in F$, numerous techniques can be employed to estimate said parameters.
 In many cases, especially large scale machine learning methods such as (stochastic) gradient descent and coordinate ascent are used to iteratively optimized the parameterization of the chosen function class.
@@ -169,6 +169,7 @@ NOTES:
 \label{s:distributed_ml}
 While the execution of iterative-convergent algorithms on a single machine is straightforward, time constraints and the ever growing amount of data to be processed require these algorithms to be executed in parallel.
 This posses a number of challenges which are often observed when parallelizing algorithms, such as partitioning the state used in the algorithm as well as communication and consistency management.
+In this context, state refers to a structure containing arbitrary data e.g. an array, tensor or list.
 While intra-node parallelism in multi-core and multi-processor systems can mitigate these problems, it is not satisfying in terms of cost and scalability.
 On the other hand, inter-node parallelism has the desired properties but can not be easily parallelized.
 Therefore in the past decade a lot of research has focused on inventing new systems to deal with those challenges and make distributed machine learning more efficient and scalable.
@@ -176,7 +177,7 @@ Therefore in the past decade a lot of research has focused on inventing new syst
 \subsection{State Partitioning}
 Depending on the algorithm and optimization technique employed to solve for the optimal solution, there exist multiple approches to distribute the state used in the algorithm (e.g. input data, model parameters).
 As depicted in Figure \ref{fig:data_parallelism}, an initial approach by Zinkevich et. al \cite{zinkevich2010parallelized} introduced a data-parallel approach for computing stochastic gradient descent (SGD) via the MapReduce framework.
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/data_parallelism.png}
 \caption{Data-parallelism via MapReduce}
@@ -199,12 +200,12 @@ First, if the size of a local model $w_k$ exceeds the available memory on a sing
 This is the case e.g. for topic models at web scale or deep neural networks used in the Google Brain project \cite{dean2012large}, consisting of billions of parameters.
 Second, even though the scalability improved by introducing data-parallelism the lack of parameter exchange during runtime can lead to suboptimal performance \cite{xing2015strategies} as the algorithm essentially resembles batch gradient descent, which is known to have suboptimal convergence properties compared to mini-batch or stochastic gradient descent \cite{bottou2010large} \cite{smith2016cocoa}.
 In order to improve the performance, a system must be able to communicate more frequently and it must also be able to partition a model accross multiple machines to scale with the size of the model.
-Following those requirements resulted in the publication of the parameter server \cite{li2014scaling}, which provides a framework for inter-node parallelism of iterative convergent algorithms.
+Following those requirements resulted in the publication of the parameter server \cite{Li2014}, which provides a framework for inter-node parallelism of iterative convergent algorithms.
 
 \subsection{Communication}
 As depicted in Figure \ref{fig:param_server}, the parameter server is a group of an arbitrary number of machines $\{S\}_{l=1}^L$, e.g. $S = \{S_1, S_2\}$ where each member of the group is responsible for storing a part of the model $\{w\}_{l=1}^L$ and making it accessible to the workers $\{W\}_{k=1}^K$, e.g. $W = \{W_1, W_2, W_3\}$, via a defined interface that is similar to a key-value store.
 The model is partitioned among the machines of the server to provide optimal throughput, fault tolerance and to mitigate the effect of a model exceding the memory of a single machine.
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=0.7\textwidth]{img/param_server.png}
 \caption{Parameter Server}
@@ -236,12 +237,6 @@ By decoupling the progress of workers it is possible to minimize the effect of s
 However, as discussed in the next section, combining model parameters obtained from workers with greatly differing algorithm progress can have a detrimental effect on algorithm throughput.
 Finding the balance between algorithm throughput and data throughput can therefore be seen as consistency management.
 
-NOTES:
-- what has to be made clear:
-	- a system that improves upon state of the art must provide the following properties: resemble common machine learning pipelines (e.g. distributed control flow, loop constructs, arbitrary consistency, arbitrary structure of workers, arbitrary aggregation scheme such as tree or group aggregation)
-- describe the general setup of distributed machine learning, data partitioning, model partitioning, multiple workers in a distributed environment
-- List the challenges of distributed ML (synchronization/consistency, distributing state and model, choosing the best formation of workers (maybe different jobs (computing updates, merging updates))), choosing the best communcation model, show picture
-
 
 \subsection{Consistency}
 The most important part of any distributed system is the synchronization strategy used to ensure consistency among multiple machines concurrently accessing and updating some shared state.
@@ -263,25 +258,25 @@ The second strategy is known as \textit{total asynchronous parallelization (TAP)
 Similar to BSP, all workers publish their locally computed parameter updates to the server after each iteration but in this case the changes are applied to the model immediately.
 Therefore no waiting for other workers is required, resulting in a very high data throughput.
 The straggler problem can be mitigated by this synchronization scheme as well, as depicted in Figure \ref{fig:tap_straggler}.
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=0.6\textwidth]{img/tap_straggler.png}
 \caption{Straggler in TAP}
 \label{fig:tap_straggler}
 \end{figure}
 Even though worker $W_3$ is a straggler, which would have prevented the remaining workers $\{W_2, W_3\}$ from proceeding beyond the synchronization barrier of iteration 1, the workers can continue with their next iterations without waiting for the slower worker.
-Although this consistency scheme seems to work quite well in practice \cite{li2014scaling}, it lacks formal convergence guarantees and can even diverge \cite{dai2014high}.
+Although this consistency scheme seems to work quite well in practice \cite{Li2014}, it lacks formal convergence guarantees and can even diverge \cite{dai2014high}.
 This stems from the fact that no theoretical convergence bound can be established as the divergence in iteration between workers is unbound.
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=0.6\textwidth]{img/ssp_straggler.png}
 \caption{Straggler in SSP}
 \label{fig:ssp_straggler}
 \end{figure}
 A middle ground between bulk synchronous parallelization and total asynchronous parallelization is \textit{stale synchronous parallel (SSP)} \cite{ho2013more} or \textit{bounded staleness (BS)}.
-As shown in Figure \ref{fig:tap_straggler}, SSP introduces a maximum delay, or staleness threshold, of $\tau_{max}$ between the slowest and fastest node.
-In this example, worker $W_1$ is blocked and can not proceed beyond iteration 3 as the slowest worker $W_3$ has not finished its first iteration.
-As soon as worker $W_3$ has completed its first iteration, $W_1$ is unblocked and can proceed.
+As shown in Figure \ref{fig:tap_straggler}, SSP introduces a fixed maximum delay, or staleness threshold, of $\tau_{max}$ between the slowest and fastest node.
+In the example, for $\tau_{max} = 3$ worker $W_1$ is blocked and can not proceed beyond iteration 3 as the slowest worker $W_3$ has not finished its first iteration.
+As soon as worker $W_3$ has completed its first iteration, $W_1$ is unblocked and can proceed as long as the difference in iteration stays below $\tau_{max}$.
 SSP overcomes some of the limitations of TAP by introducing a bound on divergence in number of iterations between workers.
-Formal convergence guarantees can be restored while still maintaining the flexibility of asynchronous parallelization and limiting but not completely preventing the straggler problem \cite{cipar2013solving}.
+The staleness threshold resembles a bound which can be used to restore formal convergence guarantees while still maintaining the flexibility of asynchronous parallelization and limiting but not completely preventing the straggler problem \cite{cipar2013solving}.
 In general this helps to compensate e.g. update related communication between iterations or fluctuations in worker performance, which explains why SSP works so well in practice.
