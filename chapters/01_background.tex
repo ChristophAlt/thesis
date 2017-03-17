@@ -61,7 +61,7 @@ The general structure of stochastic gradient descent is described in Algorithm \
 \end{algorithm}
 
 Coordinate descent on the other hand iteratively tries to optimize a given objective by successively performing approximate minimization along a coordinate direction while keeping the other directions fixed.
-TODO: give a more in detail explanation and provide algorithm description
+\textbf{NOTES:} give a more in detail explanation and provide algorithm description
 
 \begin{algorithm}
 \caption{Stochastic Coordinate Ascent}\label{alg:sca}
@@ -92,7 +92,7 @@ Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
 \label{eqn:elastic_net}
 \end{equation}
 
-NOTES:
+\textbf{NOTES:}
 - regularization in general
 - L1, L2 regularization
 - elastic-net as special case
@@ -152,7 +152,7 @@ $\alpha_{[k]_i}$ denotes the local weight vector stored on machine $k$ with $\al
 \end{algorithm}
 In summary the framework provides a procedure to effectively combine the results from local computation without having to deal with conflicts resulting from similar updates computed on other machines.
 
-NOTES:
+\textbf{NOTES:}
 - local solver (batch coordinate descent)
 - elastic-net in the cocoa setup
 - algorithm parameters sigma and gamma
@@ -160,7 +160,7 @@ NOTES:
 
 \section{Dataflow Systems}
 \label{s:dataflow}
-NOTES:
+\textbf{NOTES:}
 - description of dataflow in general
 - architecture of dataflow systems, Apache Spark and Flink
 - description of RDDs
