@@ -2,3 +2,14 @@
 
 \chapter{Consistency Management}
 \label{c:consistency_mgmt}
+
+NOTES:
+this should show:
+	- what structure a ml pipeline has and that there are parts that can be run in parallel and in parallel with relaxed constistency/synchronization
+	- show what kind of information can be infered from knowledge about the architecture (computational and memory resources, bandwidth, bandwidth quota) and the problem size (size of input data, size of model)
+	- what part of distributing a machine learning algorithm can be handled by the system (distributing data, distributing model and computation, scheduling of work) and what needs to be specified by the developer (parallelism, control flow and required states (?), )
+
+- describe the limitations of current state-of-the-art distributed machine learning systems
+	- inference of certain properties depending on hardware architecture (GPU, CPU, FPGA) and algorithm properties
+	- only concerned with the important parts for going from an exact single machine to a distributed algorithm implementation by specifying data partitioning, topology and constistency management properties (synchronzation requirements/schemes, filter, update/merging strategies)
+	
