@@ -13,7 +13,7 @@ Furthermore the field of distributed machine learning is explained in more detai
 \label{ss:ica}
 Consider a supervised learning setup with a dataset $D = \{z_1,\ldots,z_n\}$ with each example $z_i$ being represented by a pair $(x_i,y_i)$ consisting of an input $x_i$ and a scalar output $y_i$.
 Consider also a loss function $\ell(\hat{y},y)$ quantifying the cost of predicting $\hat{y}$ when the true output is $y$. As a model, a family $F$ of functions $f_w(x)$ parameterized by a weight vector $w$ is chosen.
-The goal is to find a function $f \in F$ that minimizes the loss $Q(z, w) = \ell(f_w(x),y)$. Emperical risk $E_n(f) = \frac{1}{n}\sum_{i=0}^{n}\ell(f(x_i),y_i)$ performance on training set, expected risk generalization performance.
+The goal is to find a function $f \in F$ that minimizes the loss $Q(z, w) = \ell(f_w(x),y)$. Empirical risk $E_n(f) = \frac{1}{n}\sum_{i=0}^{n}\ell(f(x_i),y_i)$ performance on training set, expected risk generalization performance.
 \begin{equation}
 E_n(f_w) = \frac{1}{n}\sum_{i=0}^{n} \ell(f_w(x_i),y_i)
 \label{eqn:emp_risk}
@@ -37,14 +37,14 @@ Gradient descent updates the weights $w$ at each iteration $t$ on the basis of t
 w^{t} = w^{(t-1)} - \eta\frac{1}{n}\sum_{i=0}^{n}\nabla_wQ(z_i,w^{(t-1)})
 \label{eqn:gd_update}
 \end{equation}
-where $\eta$ is a chosen gain, often refered to as learning rate.
+where $\eta$ is a chosen gain, often referred to as learning rate.
 While this achieves linear convergence under sufficient regularity assumptions and a sufficiently small learning rate $\eta$ \cite{dennis1996numerical} \cite{bottou2010large} a more simplified version is commonly used in practice, called stochastic gradient descent (SGD).
 Instead of computing the gradient $\nabla_wE_n(f_w)$ exactly, the gradient is estimated at each iteration $t$ based on a single randomly picked example $z_t$.
 \begin{equation}
 w^{t} = w^{(t-1)} - \eta_t\nabla_wQ(z_t,w^{(t-1)})
 \label{eqn:sgd_update}
 \end{equation}
-The assumption is that the gradient obtained by \ref{eqn:sgd_update} behaves similar to its expectiation in \ref{eqn:gd_update}.
+The assumption is that the gradient obtained by \ref{eqn:sgd_update} behaves similar to its expectation in \ref{eqn:gd_update}.
 The convergence properties have been studied extensively and under mild conditions an almost sure convergence can be established when the learning rate satisfies the conditions $\sum_t\eta_t^2 < \infty$ and $\sum_t\eta_t = \infty$ \cite{bottou2010large}.
 The general structure of stochastic gradient descent is described in Algorithm \ref{alg:sgd}.
 
@@ -109,8 +109,8 @@ CoCoA as described in Algorithm \ref{alg:cocoa} provides a communication-efficie
 \label{eqn:lin_loss}
 \end{equation}
 in a distributed setting.
-Where $\alpha$ denotes the weight vector, $\ell$ is convex and smooth and $r$ is assumed to be seperable, which in this context means $r(x) = \sum_{i=0}^nr_i(x_i)$.
-Commonly the term $\ell$ is an emperical loss over the data of the form $\sum_{i} \ell(f_w(x_i), y_i)$ and the term $r$ is a regularizer, e.g. $r(w) = \lambda\|w\|_p$ where $\lambda$ is a regularization parameter.
+Where $\alpha$ denotes the weight vector, $\ell$ is convex and smooth and $r$ is assumed to be separable, which in this context means $r(x) = \sum_{i=0}^nr_i(x_i)$.
+Commonly the term $\ell$ is an empirical loss over the data of the form $\sum_{i} \ell(f_w(x_i), y_i)$ and the term $r$ is a regularizer, e.g. $r(w) = \lambda\|w\|_p$ where $\lambda$ is a regularization parameter.
 Many algorithms in machine learning can be expressed in this form, such as logistic and linear regression, lasso and sparse logistic regression and support vector machines.
 
 CoCoA leverages the primal-dual relation which allows for solving the problem in either the primal or dual formulation.
@@ -158,7 +158,7 @@ In summary the framework provides a procedure to effectively combine the results
 - algorithm parameters sigma and gamma
 
 
-\section{Dataflow Systems}
+\section{Machine Learning with Data-flow Systems}
 \label{s:dataflow}
 \textbf{NOTES:}
 - description of dataflow in general
