@@ -16,7 +16,7 @@ Therefore a key part of horizontally scaling machine learning algorithms is to e
 Many of todays successful businesses throughout fields like finance, e-commerce and health-care rely heavily on the ability to process vast amounts of user or sensorical data, collected to make services smarter and user experience better.
 In order to learn from the collected data, discover patterns and ultimately gain new insights, it needs to be processed by an algorithm.
 It is not uncommon that the input ranges somewhere between hundred gigabytes and tenth of petabytes.
-In the past, processing this much data required either a supercomputer, which was only available to large institutions or government entities or some proprietary compute cluster.
+In the past, processing this much data required either a supercomputer, which was only available to large institutions or government entities, or some proprietary compute cluster.
 All this changed when Google introduced MapReduce \cite{Dean2004} in 2004.
 The MapReduce framework made it possible to process data in a distributed and fault tolerant way with the help of a compute cluster formed by hundredth or thousandth of machines.
 Instead of using a single, expensive, special hardware supercomputer the framework provides the foundation to assemble commodity hardware machines into a compute cluster.
@@ -36,25 +36,28 @@ These so called iterative-convergent algorithms required a change in how systems
 This limitation essentially sparked the development of specialized frameworks for distributed execution of iterative-convergent algorithms used in common machine learning tasks.
 The most widely recognized systems are Petuum \cite{Xing2015}, ParameterServer \cite{Li2014} and MALT \cite{Li2015}.
 Different from the MapReduce paradigm, these frameworks, instead of using a pipeline to transform an immutable dataset into another immutable dataset, operate on a fixed but mutable state, which is held by a single machine or distributed over multiple machines.
-This state can then be updated by workers that have computed an update locally and send it to these state keepers. Which act as surrogates, taking state updates and incorporating these into the state by some user defined function.
+This state can then be updated by workers that computed an update locally and sent it to these state keepers taking updates and merging these into the state by some user defined function.
 While these systems can increase the performance on machine learning algorithms by an order of magnitude \cite{Xing2015} compared to data-flow systems, most systems come with either limited usability, which makes it difficult to implement additional algorithms, are tied to a specific algorithm or are very low level frameworks.
 Efficiently distributing machine learning algorithms while at the same time provide the ability to concisely express machine learning algorithms remains an extremely challenging problem.
 A system targeting the execution of those algorithms at scale must therefore provide the ability to concisely express the underlying algebraic structure and at the same time be flexible enough to allow experimentation and fine tuning.
-Where consistency management is an essential part to ensure that algorithms are executed fast and efficient.
+Where consistency management is an essential part to ensure that algorithms are executed both fast and efficient but most importantly, correct.
 
 
 \section{Thesis Outline}
-In this thesis we introduce a novel framework for large scale distributed machine learning.
+This thesis introduces a novel framework for large scale distributed machine learning.
 It improves upon currently available systems by providing a powerful programming abstraction that can concisely express state of the art machine learning algorithms and at the same time minimizes the effort necessary to move from a single machine to a cluster.
 The framework design is optimized for efficient parallel asynchronous execution of iterative-convergent algorithms in a cluster and ensures the required consistency is enforced among parallel learners, depending on the algorithm properties. By allowing the user to decide how to maintaining the best trade-off between algorithm execution and progress communication the performance is improved as well.
 All of this can be easily customized for quick prototyping and fine tuning, which makes the system suited for developers as well as researchers.
 The goal of this thesis is to implement the state centric programming model and show its performance in comparison with Apache Spark on an example implementation of the CoCoA \cite{Jaggi2014} framework.
-I start off by providing a background on the architecture and inner workings of state of the art frameworks for big data processing and distributed machine learning in Chapter \ref{c:background}. Furthermore the most commonly used algorithms and optimization techniques are introduced.
-The majority of those algorithms can be classified into the group of so called iterative-convergent algorithms for which I am going to provide a more formal description. I introduce the common algorithm parallelization strategies in distributed machine learning.
-I conclude the chapter by providing an overview over the challenges and issues that need to be addressed and considered when developing a distributed machine learning system and how this is achieved by current frameworks.
+Chapter \ref{c:background} starts off by providing a background on the architecture and inner workings of state of the art frameworks for big data processing and distributed machine learning.
+In addition the the most commonly used algorithms and optimization techniques are introduced.
+The majority of those algorithms can be classified into the group of so called iterative-convergent algorithms for which a more formal treatment is provided.
+Furthermore the chapter introduces the common algorithm parallelization strategies in distributed machine learning.
+The chapter concludes by providing an overview over the challenges and issues that need to be addressed and considered when developing a distributed machine learning system and how this is achieved by current frameworks.
 This will give rise to understanding why a different framework architecture and abstraction is necessary to improve the performance and expressibility of large scale distributed machine learning applications.
 Chapter \ref{c:state_centric} therefore introduces the state centric programming model, which treats the state as a mutable first class citizen, which can be distributed and altered by updates that result from distributed computation.
-This allows the system to reason about the most optimal distribution of state in the cluster which is then scheduled with computation that can update the state. I further describe the architecture of the system and how the essential components are implemented.
+This allows the system to reason about the most optimal distribution of state in the cluster, which is then scheduled with computation that can update the state.
+Subsequently the chapter describes the architecture of the system and how the essential components are implemented.
 When updating a shared state from multiple different locations, consistency must be maintained in order to ensure the algorithm progresses as expected. The system is responsible for managing a state's consistency among all of its instances across the cluster. Chapter \ref{c:consistency_mgmt} therefore describes several schemes for ensuring consistency and at the same time optimizing for bandwidth and computational resource usage.
 In order to show the system and its consistency management in action, Chapter \ref{c:experiments} compares the system against Apache Spark by running the CoCoA framework on two datasets with elastic-net regularized linear regression as the chosen algorithm.
 Chapter \ref{c:conclusion} summarize the experiments with the lessons learned and provides suggestions on how to further improve systems for large scale distributed machine learning.

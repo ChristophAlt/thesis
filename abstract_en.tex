@@ -15,9 +15,9 @@ In recent years, machine learning emerged as the core of many successful applica
 While the rise of artificial intelligence continues, the amount of data to be processed grows even faster.
 Unsurprisingly a lot of research has since focused on methods to parallelize commonly used algorithms and new systems and frameworks have been published, trying to improve the performance of distributed machine learning.
 Even though there has been a lot of progress towards more efficient systems, many state-of-the-art systems still have limitations.
-Current frameworks are neither expressible nor flexible enough to allow for efficient development of distributed machine learning algorithms, making them unsuited for experimentation and quick prototyping even though this is essential for achieving optimimal performance.
+Current frameworks are neither expressible nor flexible enough to allow for efficient development of distributed machine learning algorithms, making them unsuited for experimentation and quick prototyping even though this is essential for achieving optimal performance.
 On the other hand, most parallelization strategies exploit the algorithms inherent stochastic nature to enable parallel execution at the expense of lowered consistency among the shared state.
-Even though this does not necessarily affect quality of the results, an improper choosen level of consistency can severely affect algorithm performance, resulting in a non optimal convergence rate and therefore increased runtime.
+Even though this does not necessarily affect quality of the results, an improper chosen level of consistency can severely affect algorithm performance, resulting in a non optimal convergence rate and therefore increased runtime.
 
 This thesis introduces a novel framework for distributed machine learning, which is based on a state centric programming model with yield semantics.
 The programming model allows the user to focus on the key elements of developing distributed machine learning algorithms, namely parameter communication, parameter merging and adaptive consistency management among distributed workers, while the system takes care of utilizing the cluster resources in an optimal fashion.

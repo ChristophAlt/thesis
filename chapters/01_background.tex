@@ -13,15 +13,16 @@ Furthermore the field of distributed machine learning is explained in more detai
 \label{ss:ica}
 Consider a supervised learning setup with a dataset $D = \{z_1,\ldots,z_n\}$ with each example $z_i$ being represented by a pair $(x_i,y_i)$ consisting of an input $x_i$ and a scalar output $y_i$.
 Consider also a loss function $\ell(\hat{y},y)$ quantifying the cost of predicting $\hat{y}$ when the true output is $y$. As a model, a family $F$ of functions $f_w(x)$ parameterized by a weight vector $w$ is chosen.
-The goal is to find a function $f \in F$ that minimizes the loss $Q(z, w) = \ell(f_w(x),y)$. Empirical risk $E_n(f) = \frac{1}{n}\sum_{i=0}^{n}\ell(f(x_i),y_i)$ performance on training set, expected risk generalization performance.
+The goal is to find a function $f \in F$ that minimizes the loss $Q(z, w) = \ell(f_w(x),y)$. The empirical risk
 \begin{equation}
 E_n(f_w) = \frac{1}{n}\sum_{i=0}^{n} \ell(f_w(x_i),y_i)
 \label{eqn:emp_risk}
 \end{equation}
+quantifies the performance on training set.
 In order to find an optimal solution many algorithms used in large scale machine learning such as regression, topic models, matrix factorization or neural networks employ either gradient based methods or Markov chain Monte Carlo methods.
 To obtain the optimal solution those algorithms try to iteratively update the weight vector $w$. At each iteration $t$ an updated weight vector $w^{t}$ is computed based on the vector of the previous iteration $w^{(t-1)}$ and the data $D$. The resulting model $f_{w^{t}}$ is again a better summary of the data $D$ under the objective $Q$. \ref{eqn:delta_upd} shows the process of refining the model, with $\Delta$ being an arbitrary update function.
 \begin{equation}
-w^{t} = w^{(t-1)} + \Delta(w^{(t-1)},D)
+w^{t} = w^{(t-1)} + \Delta(D, w^{(t-1)})
 \label{eqn:delta_upd}
 \end{equation}
 The update function depends on the algorithm employed and can be viewed as a procedure of obtaining a step towards a better model. At each iteration an update $\Delta w$ is computed and applied to the previous weight vector until a stopping condition is satisfied. E.g. the distance to the optimal solution or the objective difference between two iterations is monitored. When the difference is below a certain threshold the computation stops and the algorithm is said to be converged.
@@ -46,58 +47,32 @@ w^{t} = w^{(t-1)} - \eta_t\nabla_wQ(z_t,w^{(t-1)})
 \end{equation}
 The assumption is that the gradient obtained by \ref{eqn:sgd_update} behaves similar to its expectation in \ref{eqn:gd_update}.
 The convergence properties have been studied extensively and under mild conditions an almost sure convergence can be established when the learning rate satisfies the conditions $\sum_t\eta_t^2 < \infty$ and $\sum_t\eta_t = \infty$ \cite{bottou2010large}.
-The general structure of stochastic gradient descent is described in Algorithm \ref{alg:sgd}.
-
+The general structure of stochastic gradient descent is described in (\ref{alg:sgd}).
 \begin{algorithm}
 \caption{Stochastic Gradient Descent}\label{alg:sgd}
 \begin{algorithmic}[1]
-\State $k\gets 1$ and initialize $w^0 \in \mathbb{R}^d$
+\State $t\gets 0$ and initialize $w^0 \in \mathbb{R}^d$
 \Repeat
-\For{}
-\State $w^{t} \gets w^{(t-1)} - \eta_t\nabla_wQ(z_t,w^{(t-1)})$
+\State $t \gets t + 1$
+\For{$k$ in $shuffle([1, \ldots, n])$}
+\State $w^{t} \gets w^{(t-1)} - \eta_t\nabla_wQ(z_k,w^{(t-1)})$
 \EndFor
 \Until{termination criteria satisfied}
 \end{algorithmic}
 \end{algorithm}
-
-Coordinate descent on the other hand iteratively tries to optimize a given objective by successively performing approximate minimization along a coordinate direction while keeping the other directions fixed.
-\textbf{NOTES:} give a more in detail explanation and provide algorithm description
-
+On the other hand, coordinate descent, described in (\ref{alg:scd}), iteratively tries to optimize a given objective by successively performing approximate minimization along a coordinate direction while keeping the other directions fixed.
 \begin{algorithm}
-\caption{Stochastic Coordinate Ascent}\label{alg:sca}
+\caption{Stochastic Coordinate Descent}\label{alg:scd}
 \begin{algorithmic}[1]
-\State $k\gets 1$ and initialize $w^0 \in \mathbb{R}^d$
+\State $t\gets 0$ and initialize $w^0 \in \mathbb{R}^n$
 \Repeat
-\For{}
-\State
+\State $t \gets t + 1$
+\For{$k$ in $shuffle([1, \ldots, d])$}
+\State $w^{t} \gets w^{(t-1)} - \alpha_k[\nabla_wQ(w^{(t-1)})]_ke_k$
 \EndFor
 \Until{termination criteria satisfied}
 \end{algorithmic}
 \end{algorithm}
-
-\subsection{Regularization}
-
-\begin{equation}
-Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
-\label{eqn:l1_reg}
-\end{equation}
-
-\begin{equation}
-Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
-\label{eqn:l2_reg}
-\end{equation}
-
-\begin{equation}
-Q(z,w) = \textit{$\ell$}(f_w(x),y) + \textit{r}(w)
-\label{eqn:elastic_net}
-\end{equation}
-
-\textbf{NOTES:}
-- regularization in general
-- L1, L2 regularization
-- elastic-net as special case
-- convexity properties
-- mini-batch setup algorithm
 
 
 \subsection{CoCoA}
@@ -114,7 +89,7 @@ Commonly the term $\ell$ is an empirical loss over the data of the form $\sum_{i
 Many algorithms in machine learning can be expressed in this form, such as logistic and linear regression, lasso and sparse logistic regression and support vector machines.
 
 CoCoA leverages the primal-dual relation which allows for solving the problem in either the primal or dual formulation.
-For some application where the number of examples $n$ is much smaller than the number of features $d$, $n way lesser than d$, solving the problem in the dual may be easier because this problem has $n$ variables to optimize, compared to $d$ for the primal.
+For some application where the number of examples $n$ is much smaller than the number of features $d$, $n \ll d$, solving the problem in the dual may be easier because this problem has $n$ variables to optimize, compared to $d$ for the primal.
 The CoCoA framework leverages Fenchel-Rockafellar duality to quadratically approximate the global objective in \ref{eqn:lin_loss}.
 This leads to separability of the problem over the coordinates of $\alpha$ and the partitions, where the local subproblems are similar in structure to the global problem and also exploit second order information within the local data partition.
 Therefore the dataset $D \in \mathbb{R}^{d \times n}$ can be distributed either example-wise or feature-wise over $K$ physical machines according to the partitioning $\{P\}_{k=1}^K$, depending which is more efficient to solve.
@@ -150,19 +125,24 @@ $\alpha_{[k]_i}$ denotes the local weight vector stored on machine $k$ with $\al
 \Until{termination criteria satisfied}
 \end{algorithmic}
 \end{algorithm}
+The aggregation parameter $\gamma$ decides how the updates computed from the subproblems are combined.
+Commonly $\gamma$ is chosen to be in the range between $\frac{1}{K}$ (averaging) and $1$ (adding).
+$\sigma^\prime$ is the subproblem parameter, measuring the difficulty of the data partitioning $\{P\}_{k=1}^K$.
+The parameter is commonly set to $\sigma^\prime = \gamma K$ but could also be improved, depending on the data.
 In summary the framework provides a procedure to effectively combine the results from local computation without having to deal with conflicts resulting from similar updates computed on other machines.
-
-\textbf{NOTES:}
-- local solver (batch coordinate descent)
-- elastic-net in the cocoa setup
-- algorithm parameters sigma and gamma
-
 
 \section{Machine Learning with Data-flow Systems}
 \label{s:dataflow}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{img/ml_dataflow.png}
+\caption{Iterative-convergent Algorithms and Data-flow}
+\label{fig:ml_dataflow}
+\end{figure}
+
 \textbf{NOTES:}
-- description of dataflow in general
-- architecture of dataflow systems, Apache Spark and Flink
+- description of data-flow in general
+- architecture of data-flow systems, Apache Spark and Flink
 - description of RDDs
 
 \section{The Challenges of Distributed Machine Learning}
@@ -218,18 +198,19 @@ Each of the workers maintains a local partition of the input data $\{D\}_{k=1}^K
 \label{eqn:local_delta_upd_param}
 \end{equation}
 In the parameter server setup, the local state $w$ acts as a cache for global parameters in order to reduce network usage.
-Therefore, depending on the caching policy, $w_{k_i}$ can either be directly read either the local cache or must be retrieved from the parameter server.
-Additionally to applying the update to the local model $w$, the difference $\Delta w_{k_i}^{t}$ is published to the parameter server as well, which takes care of applying it to the corresponding entry $w_i$ to make the update available to all other workers $W_i$, $i \neq k$.
+Therefore, depending on the caching policy, $w_{k_i}$ can either be directly read from the local cache or must be retrieved from the parameter server.
+Additionally to applying the update to the local model $w$, the difference $\Delta w_{k_i}^{t}$ is published to the parameter server as well.
+The logic on the server takes care of applying the update to the corresponding entry $w_i$ to make the progress available to all other workers $W_i$, $i \neq k$.
 In case multiple updates for the same parameter $w_i$ arrive at the same time, a user defined function (UDF) needs to be provided to the server, which takes care of combining those updates so it can be applied to the parameter stored on the server.
 The procedure of retrieving, updating and publishing is executed concurrently on all workers.
 This enables all workers to work in parallel on the iterative parameter refinement while asynchronously updating and retrieving the parameters necessary for computing the next update.
 The procedure of updating the model in parallel is also known as model-parallelism.
 
-While this schema has been proven to work well in practice (some numbers), a couple of issues still remain when running iterative-convergent algorithms at scale using the parameter server.
+While this schema has been proven to work well in practice \cite{Li2014} \cite{dai2014high}, a couple of issues still remain when running iterative-convergent algorithms at scale using the parameter server.
 According to \cite{wei2015managed} this can be viewed as finding the trade-off between algorithm throughput and data throughput.
 In other words the challenge is to find a balance between the quality of parameter refinements and the quantity at which they are generated.
 As with distributed systems in general, network communication is the bottleneck in distributed machine learning as well.
-Even though due to the stochastic nature of many machine learning algorithms, the communication can be reduce compared to the exact serial algorithm, it has been proven that fresher model parameters increase the algorithm throughput per iteration \cite{langford2009slow}.
+Even though, due to the stochastic nature of many machine learning algorithms, the communication can be reduce compared to the exact serial algorithm, it has been proven that fresher model parameters increase the algorithm throughput per iteration \cite{langford2009slow}.
 Therefore, in order to guarantee an optimal algorithm throughput, a worker should always work with the latest parameters.
 On the other hand, exchanging parameter updates over the network more frequently is time consuming, which leaves less time to run local computation and therefore essentially decreases the data throughput due to increased time spent on network management.
 The second issue concerns the relaxed consistency among participating workers due to reduced communication compared to the serial algorithm.

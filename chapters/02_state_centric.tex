@@ -10,37 +10,37 @@ Also current frameworks provide only a minor abstraction, leaving the developer 
 A developer should be able to focus on the main goal of distributed machine learning, namely an efficient parallel execution.
 This section introduces the general architecture of the framework and its main parts based on the example of iterative-convergent algorithms, though its application is not limited to this particular family.
 
-As depicted in Figure \ref{fig:framework_architecture} the framework consists of three major parts, designed to support the developer with the development and execution of distributed machine learning algorithms.
+As depicted in Figure \ref{fig:framework_architecture} the framework consists of three major parts, designed to support the developer with the development as well as execution of distributed machine learning algorithms.
 First, it provides a collection of primitives that can used to describe the algorithm with the help of a state centric programming model.
 The SCPM\footnote{State-centric Programming Model} treats state as a first class citizen which can be distributed according to a given partitioning and altered by local and remote transformation in parallel.
-Depending on how a state is distributed and the type of transformation applied to it, the consistency management coordinates the distributed execution of all algorithm steps in a way that ensures the correctness of the result.
+Depending on how a state is distributed and the type of transformation applied to it, the consistency management coordinates the distributed execution of all algorithm steps in the most efficient way that still ensures the correctness of the result.
 In the context of machine learning, a correct result can be obtained in different ways as discussed in Section \ref{ss:consistency}.
 Therefore additional primitives are offered by the framework to provide the consistency management with further instructions on how to ensure a consistent distributed execution given a particular state and transformation.
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.9\textwidth]{img/framework_architecture.png}
+\includegraphics[width=1.0\textwidth]{img/framework_architecture.png}
 \caption{Framework Architecture}
 \label{fig:framework_architecture}
 \end{figure}
-Secondly, the framework provides an algorithm parallelization pipeline, which takes the algorithm definition as an input an compiles a physical plan by applying a sequence of enrichment steps to it.
+Secondly, the framework provides an algorithm parallelization pipeline, which takes the algorithm definition as an input and compiles a physical plan by applying a sequence of enrichment steps to it.
 These enrichment steps, as discussed in Section \ref{s:algo_parallel_pipeline}, take properties of the algorithm and cluster infrastructure into account to find the optimal execution strategy.
 The physical plan contains a detailed description of how to execute the algorithm in a distributed manner on a specific group of machines within the cluster.
-As the third and final part of the framework, the interpreter is responsible for translating the physical plan into a sequence of control instructions that are used to control the distributed execution of the algorithm among the participating machines, as can be seen in Figure \ref{fig:framework_driver}.
+As the third and final part of the framework, the interpreter is responsible for translating the physical plan into a sequence of control instructions used to control the distributed execution of the algorithm among the participating machines, as can be seen in Figure \ref{fig:framework_driver}.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.8\textwidth]{img/framework_driver.png}
 \caption{Algorithm Execution Architecture}
 \label{fig:framework_driver}
 \end{figure}
-The machine running the interpreter is called the driver, which can be either a dedicated machine that is part of the cluster or the developers own machine.
+The machine running the interpreter is called the driver, which can be either a dedicated machine in the cluster or the developers own machine.
 According to the physical plan, a sequence of steps $S_{ij}, i \in \{1, \ldots, M\}, j \in \{1, 2\}$ is executed on each machine.
 Each step can either be computation, or a control flow operator such as a loop, which in turn contains again a sequence of steps.
 
 
 \section{State Centric Programming Model}
 In order to support the development process, a programming model is required that is expressive enough to conveniently model the complex dependencies when executing a machine learning algorithm in a distributed manner.
-For this purpose the framework provides a so called state centric programming model, which is motivated by means of the example algorithm definition in \ref{alg:general_ica}, describing a generic iterative-convergent algorithm as it would be implemented by a developer.
-The algorithm definition is very similar among members of the ICA\footnote{iterative-convergent-algorithm} family, only $f_p$ and $\Delta(\ldots)$ must be replaced by the corresponding preprocessing transformation respectively the optimization technique used to iteratively approximating the optimal solution according to Section \ref{ss:optimization}.
+For this purpose the framework provides a so called state centric programming model, which is motivated by means of the example algorithm definition in (\ref{alg:general_ica}), describing a generic iterative-convergent algorithm as it would be implemented by a developer.
+The example is kept generic because the algorithm definition is very similar among members of the ICA\footnote{iterative-convergent-algorithm} family, only $f_p$ and $\Delta(\ldots)$ must be replaced by the corresponding preprocessing transformation respectively the optimization technique used to iteratively approximating the optimal solution according to Section \ref{ss:optimization}.
 \begin{algorithm}
 \caption{Generic iterative-convergent algorithm}\label{alg:general_ica}
 \begin{algorithmic}[1]{}
@@ -54,7 +54,7 @@ The algorithm definition is very similar among members of the ICA\footnote{itera
 \Until{termination criteria satisfied} \Comment{(D)}
 \end{algorithmic}
 \end{algorithm}
-Figure \ref{fig:ica_control_flow} depicts (\ref{alg:general_ica}) from a control-flow perspective, describing the algorithm in terms of a sequence of nested operators such as computation/transformation, loops and branches.
+Figure \ref{fig:ica_control_flow} depicts the definition in (\ref{alg:general_ica}) from a control-flow perspective, describing the algorithm in terms of a sequence of nested operators such as computation/transformation, loops and branches.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/ica_control_flow.png}
@@ -63,7 +63,7 @@ Figure \ref{fig:ica_control_flow} depicts (\ref{alg:general_ica}) from a control
 \end{figure}
 The algorithm starts with loading the input data $D$ from an arbitrary storage, followed by one ore more preprocessing steps (e.g. normalization or standardization as well as splitting the data into training and test set \textbf{(A)}).
 A square represents a step of the algorithm, which contains an arbitrary number of input states (e.g. data, model) and some kind of transformation or computation applied to them.
-This step is called a unit and is described in more detail in Section \ref{ss:unit}.
+In the programming model, this step is called a unit and is described in more detail in Section \ref{ss:unit}.
 A transformation is depicted as a circle and can either be applied once (arrow) or multiple times (cyclic arrows) to the state(s) during this particular step.
 After applying the preprocessing the actual training process is triggered, which is contained in a loop \textbf{(B)}.
 A loop symbolizes that the containing steps are executed repeatedly until some termination criterion \textbf{(D)} is satisfied, which is computed in \textbf{(E)}.
@@ -76,17 +76,19 @@ Consistency in this context means that, because of its sequential execution, no 
 Distributing said algorithm therefore requires additional instructions on how to ensure that conflicts can be resolved properly.
 These instructions are then combined with the logical representation of the algorithm and additional information regarding the distribution of state and the cluster environment to obtain a physical representation.
 This is the responsibility of the algorithm parallelization pipeline, described in Section \ref{s:algo_parallel_pipeline}, which takes the algorithm definition as input and returns a physical plan.
-The next sections introduce the key elements of the programming model.
+The next sections introduce these key elements of the programming model.
 
 \subsection{State}
-Assuming the algorithm described in (\ref{alg:general_ica}) should be parallelized with a dop\footnote{degree of parallelism} of two, it is necessary to replicate each transformation step of the sequential algorithm on $K = 2$ machines, as shown in Figure \ref{fig:ica_control_flow_dist}.
+Assuming the algorithm described in (\ref{alg:general_ica}) should be parallelized with a dop\footnote{degree of parallelism} of two.
+The parallelization makes it necessary to replicate each transformation step of the sequential algorithm on $K = 2$ machines, as shown in Figure \ref{fig:ica_control_flow_dist}.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/ica_control_flow_dist.png}
 \caption{Distributed Machine Learning Pipeline for Iterative-convergent Algorithms}
 \label{fig:ica_control_flow_dist}
 \end{figure}
-It is worth noting that the transformation logic stays the same independently of the degree-of-parallelism, including a dop of one, which is essentially a single machine.
+It is worth noting that the transformation logic stays the same independently of the degree-of-parallelism.
+Including a dop of one, which is essentially a single machine.
 Therefore the framework instead of distributing the transformation focuses on how to distribute the state and keeping it consistent throughout the execution of each transformation step.
 Hence the programming model introduces the concept of state, which is essentially a container for an arbitrary, distributable data structure.
 A state $\gamma$ must be partitionable, meaning it can be distributed according to a partitioning $\{P_{\gamma}\}_{k=1}^K$, where $K$ is the degree of parallelism.
@@ -117,7 +119,7 @@ The same holds for the size of the input data $D$.
 A special case is the partitioning $\{P_D\}_{k=1}^K$ of the input data, which is in general a matrix with rows consisting of examples.
 For iterative-convergent algorithms, depending on the optimization technique used to iteratively optimize the objective $Q$ of interest, two partitioning schemes are commonly used.
 If the optimization technique requires access to a complete example in order to update the model, such as it is the case with stochastic gradient descent, the input data is partitioned row-wise.
-On the other hand, if a coordinate-wise optimization technique is used which only needs access to a single feature, the input data is distributed column-wise as shown in Figure \ref{fig:row_col_dist} for a dop of two.
+On the other hand, if a coordinate-wise optimization technique is used, which only needs access to a single feature, the input data is distributed column-wise as shown in Figure \ref{fig:row_col_dist} for a dop of two.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.4\textwidth]{img/row_col_dist.png}
@@ -140,8 +142,8 @@ Figure \ref{fig:unit} depicts the general layout of a unit.
 \caption{Layout of a Unit}
 \label{fig:unit}
 \end{figure}
-The connectors describe an interface for receiving a control flow signal, triggering the execution of the unit and emitting a control flow signal after the work is done.
-This is used by the interpreter to schedule and execute units according to the control-flow described in the physical plan compiled by the algorithm parallelization pipeline.
+The connectors describe an interface for receiving a control flow signal, triggering the execution of the computation and emitting a control flow signal after the work is done.
+This is used by the interpreter to schedule and execute units according to the control-flow described in the physical plan.
 Figure \ref{fig:driver_units} shows two units chained together, where the first unit triggers the execution of the second unit, which in turn notifies the interpreter after the work is done.
 This closely resembles the control flow known from imperative programming languages, the difference is that this control flow can be distributed with an arbitrary degree of parallelism on a set of machines in a cluster.
 \begin{figure}[ht]
@@ -152,6 +154,7 @@ This closely resembles the control flow known from imperative programming langua
 \end{figure}
 
 \subsection{Synchronization}
+\label{ss:synchronization}
 As mentioned before, when distributing an algorithm, each unit scope has different requirements regarding consistency.
 As shown in Figure \ref{fig:ica_control_flow_dist}, the input state $D$ is partitioned into $K = 2$ parts, which means that also the units must be replicated $K$ times.
 First, in order to ensure a correct parallel execution, the consistency management must ensure that all parallel instances of a unit are properly synchronized according to the schemes discussed in Section \ref{ss:consistency}.
@@ -159,8 +162,8 @@ This synchronization happens on the control flow level and instructions on how t
 In case of the example, the preprocessing step (A) must be finished before the next step (B) can be triggered.
 Therefore the parallel instances of unit (A) must be BSP, which is the default in case no further instructions are provided for unit synchronization.
 Things are different for step (B), which is the loop containing the training step.
-In order to improve performance, this loop is often executed with SSP or TAP synchronization, meaning that the parallel instances of unit (C) can be executed in parallel without the need to synchronize on the outer loop.
-This increases the data throughput and therefore the overall performance.
+In order to improve performance, this loop is often executed with SSP or TAP synchronization, meaning that all instances of unit (C) can be executed in parallel without the need to synchronize on the outer loop.
+This increases the data throughput and can help to improve the overall performance.
 Secondly, as the parallel instances of a unit span a consistency scope, as can be seen in Figure \ref{fig:consistency_scope}, consistency management must also ensure consistency on a state level, which is discussed in the next chapter.
 \begin{figure}[ht]
 \centering
@@ -170,8 +173,8 @@ Secondly, as the parallel instances of a unit span a consistency scope, as can b
 \end{figure}
 
 \subsection{Framework in Action}
-This section combines the primitives introduced in the previous sections with the example machine learning algorithm definition in (\ref{alg:general_ica}) in order to show how it can be utilized by a developer to distribute said algorithm.
-In addition to the original definition, a partitioning is required for each of the states $D$ and $w$ serving as instructions for the framework on how to distribute the state.
+This section combines the primitives introduced in the previous sections with the example machine learning algorithm definition in (\ref{alg:general_ica}), in order to show how it can be utilized by a developer to distribute said algorithm.
+In addition to the original definition, a partitioning is required for each of the states $D$ and $w$, serving as instructions for the framework on how to distribute the state.
 Furthermore the unit scopes $\Omega_1, \Omega_2$ must be defined within the algorithm and additionally the synchronization scheme must be specified in order for the consistency management to work properly.
 \begin{algorithm}
 \caption{SCPM iterative-convergent algorithm definition}\label{alg:scpm_ica}
@@ -193,8 +196,9 @@ Furthermore the unit scopes $\Omega_1, \Omega_2$ must be defined within the algo
 
 \section{Algorithm Parallelization Pipeline}
 \label{s:algo_parallel_pipeline}
-The algorithm parallelization pipeline is part of the framework and provides the functionality to translate an algorithm defined with the state centric programming model (\ref{alg:scpm_ica}) into a representation suited for distributed execution by the driver.
-The sequence of steps to go from an algorithm definition to a distributed or physical plan is depicted in Figure \ref{fig:parallel_pipeline}, where a dark arrow resembles an intermediate representation and a light arrow depicts a transformation step between those representations.
+The algorithm parallelization pipeline is a core part of the framework and provides the functionality to translate an algorithm defined with the state centric programming model (\ref{alg:scpm_ica}) into a representation suited for distributed execution by the driver.
+The sequence of steps to go from an algorithm definition to a distributed or physical plan is depicted in Figure \ref{fig:parallel_pipeline}.
+Where a dark arrow resembles an intermediate representation and a light arrow depicts a transformation step between those representations.
 At first, a logical plan is derived from the algorithm definition by the compiler, which is then passed on to the parallelizer.
 The logical plan is then combined with information about the cluster, such as the available resources on each machine and further instructions for the consistency management, to obtain a physical plan that is used by the driver to actually schedule the distributed execution of the algorithm in the cluster.
 \begin{figure}[ht]
@@ -206,7 +210,7 @@ The logical plan is then combined with information about the cluster, such as th
 The following sections describe each step and the resulting intermediate representation in more detail.
 
 \subsection{Compiler}
-The compiler is the first step in the algorithm parallelization pipeline and it is responsible for building a logical representation of the algorithm, or logical plan by analyzing the algorithm definition.
+The compiler is the first step in the algorithm parallelization pipeline and it is responsible for building a logical representation, or logical plan, of the algorithm by analyzing the algorithm definition.
 Figure \ref{fig:logical_plan} shows the logical plan derived from the example definition in (\ref{alg:scpm_ica}).
 \begin{figure}[ht]
 \centering
@@ -214,14 +218,14 @@ Figure \ref{fig:logical_plan} shows the logical plan derived from the example de
 \caption{Logical Plan}
 \label{fig:logical_plan}
 \end{figure}
-At first a tree is built, resembling the control-flow of the algorithm, with intermediate nodes describing a control-flow operator (sequential, parallel, loop) and the leafs consist of units $\Omega_{ij}$ with $i \in \{1, \ldots, M\}$ and $j \in \{1, \ldots, U\}$, where $U$ is the number of distinct units.
+At first a tree is built, resembling the control-flow of the algorithm, with intermediate nodes describing control-flow operators (sequential, parallel, loop) and the leafs consisting of units $\Omega_{ij}$ with $i \in \{1, \ldots, M\}$ and $j \in \{1, \ldots, K\}$, where $K$ is the degree of parallelism.
 Leafs always consist of units as these are the atomic parts of an algorithm and therefore can not be further divided.
 The next step connects all states $\gamma$ with the units $\Omega$ that need access to a particular state.
 This is then used to identify when a specific state must be created and when it can be safely disposed.
 For example $\gamma_D$ is required in unit $\Omega_1$ and $\Omega_2$, which is denoted by $\Omega(\gamma_D) = \{1, 2\}$.
 Finally the synchronization instructions for the consistency management are attached to the units and control-flow operators according to the definition.
 In case of the example, the loop operator should be executed using SSP.
-Control-flow operators and unit without additional synchronization instructions default to BSP.
+Control-flow operators and units without additional synchronization instructions default to BSP synchronization.
 It is worth noting that the logical plan is built using only the information derived from the algorithm definition.
 One can think of the logical plan as an abstract representation of the algorithm, which can be parallelized in different ways by providing further instructions such as the degree of parallelism or the architecture of the cluster.
 This information is then used by the parallelizer to built a specific architecture dependent physical plan.
