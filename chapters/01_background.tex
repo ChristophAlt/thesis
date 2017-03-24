@@ -74,7 +74,6 @@ On the other hand, coordinate descent, described in (\ref{alg:scd}), iteratively
 \end{algorithmic}
 \end{algorithm}
 
-
 \subsection{CoCoA}
 Due to their widespread application in large scale machine learning and recent advances in the field of distributed optimization the thesis focuses on linear regularized objectives.
 The theoretical contemplation as well as the experiments in Section \ref{c:experiments} focus on a framework for convex optimization problems called CoCoA (Communication-efficient distributed dual Coordinate Ascent) \cite{Jaggi2014} and its successors CoCoA$^+$\cite{smith2015l1} and PROXCoCoA$^+$\cite{smith2016cocoa}.
@@ -133,17 +132,21 @@ In summary the framework provides a procedure to effectively combine the results
 
 \section{Machine Learning with Data-flow Systems}
 \label{s:dataflow}
+Data-flow based systems such as Apache Spark \cite{Zaharia2010} and Apache Flink \cite{Alexandrov2014} are not only the most widely used systems for processing large amounts of data but also for distributed machine learning.
+Figure \ref{fig:ml_dataflow} shows a data-flow pipeline as it would be used for executing an iterative-convergent algorithm such as linear regression, logistic regression or support-vector machines at scale.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.8\textwidth]{img/ml_dataflow.png}
 \caption{Iterative-convergent Algorithms and Data-flow}
 \label{fig:ml_dataflow}
 \end{figure}
-
-\textbf{NOTES:}
-- description of data-flow in general
-- architecture of data-flow systems, Apache Spark and Flink
-- description of RDDs
+At first, the data is loaded partition-wise from the storage into an RDD\footnote{Resilient Distributed Dataset}, which is the general representation of a dataset in Spark.
+Following the data loading, a mapping phase is scheduled that does one pass over the local partition of the input dataset in order to compute a refined model according to the employed optimization technique.
+In the last phase, all local models are sent to a reducer over the network, which in turn combines the incoming models into a single model according to a user defined function.
+Depending on the number of iterations configured, the flow of mapping over the partitioned data followed by reducing the local models is executed repeatedly.
+This procedure follows the scheme proposed in \cite{zinkevich2010parallelized} and therefore has the same limitations.
+The weak points are the inflexibility to control the communication frequency of the refined models as well as limiting the communication to only the important changes in model parameters.
+Another limiting factor is the synchronization barrier between each phase, which makes the scheme susceptible to the well-studied stragglers problem \cite{ananthanarayanan2013effective}.
 
 \section{The Challenges of Distributed Machine Learning}
 \label{s:distributed_ml}
