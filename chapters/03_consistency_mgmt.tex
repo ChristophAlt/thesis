@@ -4,15 +4,85 @@
 \label{c:consistency_mgmt}
 Consistency management in the context of distributed machine learning describes the process of ensuring an algorithm is parallelized most efficiently without loosing its correctness.
 Iterative-convergent algorithms are mostly sequential in nature and parallelization is commonly achieved by exploiting their inherent stochastic properties.
-Staying with the example of the previous section, as shown in Figure \ref{fig:ica_control_flow}, the unit $\Omega_2$ of training step (C) is parallelized with a dop of $k = 2$ by partitioning the input data $D$ and replicating the model $w$ across all parallel units of $\Omega_2$.
-Ensuring proper consistency management affects two domains of the algorithm execution process.
-First, as discussed in Section \ref{ss:synchronization} the control-flow must be synchronized properly according to the transformation applied during the execution of a unit and its replicas.
-In the example, the loop in (B) and its containing units $\Omega_{2i}$ are defined to be SSP in order to increase the data throughput on the input data $D$ and in the end achieve a better overall performance.
-Unfortunately, increasing the data throughput alone does not necessarily lead to a better overall performance as each unit $\Omega_{2j}$ now works independently on a replica $w_j$ of the model without sharing the local progress.
-As discussed in Section \ref{ss:consistency} this staleness of state has a negative effect on the algorithm throughput and can be mitigated by continuously exchanging the updates applied to a state, in this case $w$, between all units $\Omega_{2j}$.
+Staying with the example of the previous section, as shown in Figure \ref{fig:ica_control_flow}, unit $\Omega_2$ of training step (C) is parallelized with a dop of $K = 2$ by partitioning the input data $D$ and replicating the model $w$ across all parallel units $\{\Omega_{2j}\}_{j=0}^K$.
+Proper consistency management targets two domains of the algorithm execution process.
+First, as discussed in Section \ref{ss:synchronization}, the control-flow must be synchronized properly according to the transformation applied during the execution of a unit $\Omega_i$ and its replicas $\{\Omega_{ij}\}_{j=0}^K$.
+In the example, the loop in (B) and its containing units $\Omega_{2j}$ are defined as SSP in order to increase the data throughput on the input data $D$.
+Ultimately this supposed to result in a better overall performance due to a lower dependency on other units.
+Unfortunately, increasing the data throughput alone does not necessarily lead to a better overall performance, as each unit $\Omega_{2j}$ now works independently on a replica $w_j$ of the model without sharing the local progress.
+As discussed in Section \ref{ss:consistency} this staleness of state has a negative effect on the algorithm throughput and can be mitigated by frequently exchanging the updates applied to a state, in this case $w$, between all units $\Omega_{2j}$.
 Exchanging updates on the other hand has a negative effect on the data throughput as more computation time must be spent on network management.
-Adaptive consistency management therefore is responsible for controlling the best trade-off between communication and computation, given the requirements for synchronization and consistency at each step of the algorithm.
+Adaptive consistency management therefore is responsible for controlling the best trade-off between communication and computation, based on the requirements for synchronization and consistency at each step of the algorithm as well as continuous feedback about cluster metrics and algorithm progress.
 
+\section{Adaptive Consistency Management}
+Consistency management in general can be seen as a cooperative task between the driver and the machines involved in executing the workload defined by the algorithm definition.
+Figure \ref{fig:adapt_consist_mgmt} depicts the architecture and connections between driver and machines, where the interpreter is responsible for instructing the machines according to the program flow and also taking care of managing units and states.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\textwidth]{img/adapt_consist_mgmt.png}
+\caption{Architecture of Adaptive Consistency Management}
+\label{fig:adapt_consist_mgmt}
+\end{figure}
+The first part of the consistency management resides on the driver and is responsible for collecting feedback from the machines.
+This is then used to exercise further control over the algorithm execution.
+Feedback can be metrics about the machines, such as resource usage, network bandwidth consumption or algorithm specific properties such as the convergence rate.
+Based on the collected feedback, the consistency management is able to provide instructions for the interpreter in order to influence the consistency on a unit level.
+such as the synchronization between parallel instances of a unit in order to improve the algorithm throughput.
+Furthermore, the second part of the consistency management resides on each machine.
+This is necessary to gain control over the state level consistency as discussed in the previous section.
+Consistency management on a state level becomes necessary when a unit is parallelized by creating replicas on multiple machines.
+Parallelizing a unit results in replication or partitioning of the attached states and therefore
+This part for example can be used to control the communication frequency of model or parameter updates based on the available network bandwidth or some network quota.
+Also it is in general possible to control algorithm specific parameters such as the learning rate based on the progress of the other parallel units.
+This generic architecture allows to cover a variety of different use-cases in consistency management.
+While unit level consistency can be achieved solely by the interpreter via control-flow, state-level consistency requires more effort and coordination by the consistency management.
+In algorithm steps where a unit is parallelized, state level consistency management depends mainly on the partitioning of the attached states as well as the access pattern.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{img/par_repl_model.png}
+\caption{}
+\label{fig:par_repl_model}
+\end{figure}
+As depicted in Figure \ref{fig:par_repl_model}, read-only states such as the input data $D$ are not subject to consistency management, whereas states that are altered by more than one unit in parallel must be kept consistent.
+This stems from the fact that during the execution of a unit in parallel a non read-only state is in general subject to local and remote updates.
+Depending on the partitioning the strategy to keep a state consistent varies slightly.
+In case a state is partitioned across machines, there exists a main partition for each part of the state, containing the source of truth.
+All units working in parallel on this part of the state, communicate the updates to the machine holding the main partition and also fetch the latest updates from this partition.
+On the other hand, if a state is replicated there is no main partition holding the latest version of the state.
+In this case each unit either has to broadcast all updates to all other parallel units or the units have to elect a unit that acts as the source of truth.
+E.g. in case of the example depicted in Figure \ref{fig:ica_control_flow_dist}, unit $\Omega_{2i}$ updates its model $w_i$ locally based on some update procedure $\Delta$, according to (\ref{eqn:local_delta_upd}), but also receives the models $w_j, j \neq i$ of units $\Omega_{2j}, j \neq i$ as it is necessary to incorporate the progress of parallel instances in order to increase the algorithm throughput and mitigate slower convergence due to stale models.
+The frequency at which the progress communication takes place is controlled by the consistency management based on the collected feedback.
+As the second part of the consistency management must be present on each machine, the question arises which part on these machines is best suited to be responsible for controlling the consistency on a state level.
+
+\section{State-centric vs. Computation-centric}
+From an architectural perspective, three solutions can be considered for integrating the consistency management into each machine.
+First, with state-centric consistency, as depicted in Figure \ref{fig:state_centric_consistency}, the consistency management is part of the state itself.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\textwidth]{img/state_centric_consist.png}
+\caption{}
+\label{fig:state_centric_consistency}
+\end{figure}
+The consistency management and actual state are hidden behind a proxy, which mimics the interface of the state.
+Each update is forwarded to the consistency management, which takes care of updating the local state as well as communicating updates to all other replicas or partitions depending on the partitioning.
+The CM\footnote{Consistency Management} related parameters can be controlled by the driver.
+This has the advantage that it offers a very convenient way to interact with a state because from a unit perspective a state behaves similar to a non-parallel version.
+Furthermore, the design of a unit is considerably simplified as the computation is just a function that must be executed in parallel on multiple units and therefore very lightweight.
+On the other hand, this approach requires a deep integration of consistency management logic into the state and therefore induces a tight coupling between logic and data.
+This unnecessarily increases the dependency between data and framework and requires the developer to reimplement the logic in case the type of state changes.
+
+Second, with computation-centric consistency, as can be seen in Figure \ref{fig:computation_centric_consistency}, the consistency management is part of the unit.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\textwidth]{img/computation_centric_consist.png}
+\caption{}
+\label{fig:computation_centric_consistency}
+\end{figure}
+No coupling between state and framework exists, which would make it easier to port the code.
+Furthermore it provides a better abstraction because it separates logic and data and also a unit is already a part of the control-flow, responsible for executing the computational part.
+The consistency management is periodically invoked to communicate with the driver in order to fetch new instructions and exchange progress with parallel units.
+
+\section{Unit-internal Control-flow}
 In order to achieve the greatest flexibility and fine grained control over the consistency during algorithm execution, the consistency management is part of the unit itself.
 Figure \ref{fig:unit_internal_flow} depicts the unit internal control flow responsible for executing the actual computation followed by a number of steps related to consistency management.
 \begin{figure}[ht]
@@ -29,6 +99,6 @@ In the example, $w$ is cached in $w_{cache}$ at the beginning of the unit execut
 - deciding when to communicate and what to communicate
 - filtering, prioritizing, communicating, merging
 
-
+\section{Strategies}
 
 	
