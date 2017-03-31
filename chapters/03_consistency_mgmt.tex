@@ -55,7 +55,7 @@ The frequency at which the progress communication takes place is controlled by t
 As the second part of the consistency management must be present on each machine, the question arises which part on these machines is best suited to be responsible for controlling the consistency on a state level.
 
 \section{State-centric vs. Computation-centric}
-From an architectural perspective, three solutions can be considered for integrating the consistency management into each machine.
+From an architectural perspective, two solutions can be considered for integrating the consistency management into each machine.
 First, with state-centric consistency, as depicted in Figure \ref{fig:state_centric_consistency}, the consistency management is part of the state itself.
 \begin{figure}[ht]
 \centering
@@ -78,27 +78,42 @@ Second, with computation-centric consistency, as can be seen in Figure \ref{fig:
 \caption{}
 \label{fig:computation_centric_consistency}
 \end{figure}
-No coupling between state and framework exists, which would make it easier to port the code.
-Furthermore it provides a better abstraction because it separates logic and data and also a unit is already a part of the control-flow, responsible for executing the computational part.
-The consistency management is periodically invoked to communicate with the driver in order to fetch new instructions and exchange progress with parallel units.
+No coupling between state and framework exists, which makes it easier for a developer to reuse existing code.
+Furthermore it provides a better abstraction due to the separation of logic and data and also a unit is already a part of the control-flow, responsible for executing the computational part.
+Lastly, no proxy is required, which considerable simplifies the process of adding new types of state to the framework or reuse existing implementations such as matrix libraries.
+In this architecture, the consistency management is periodically invoked to communicate with the driver in order to fetch new instructions and exchange progress with parallel units.
 
 \section{Unit-internal Control-flow}
-In order to achieve the greatest flexibility and fine grained control over the consistency during algorithm execution, the consistency management is part of the unit itself.
-Figure \ref{fig:unit_internal_flow} depicts the unit internal control flow responsible for executing the actual computation followed by a number of steps related to consistency management.
+Considering both approaches, computation-centric consistency seems the best fit for the framework.
+Therefore, in order to achieve the greatest flexibility and fine grained control over the consistency during algorithm execution, the consistency management is part of the unit itself.
+Figure \ref{fig:unit_internal_flow} depicts the unit internal control-flow that is executed when the unit execution is triggered.
+The control-flow contains the actual computation followed by a number of steps associated with consistency management.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/unit_internal_flow.png}
 \caption{Unit internal Control-flow}
 \label{fig:unit_internal_flow}
 \end{figure}
-When a unit is executed, the first step (A) is to decide whether it is necessary to cache the updates applied to the output state.
-This is necessary because many algorithms require a delta to be communicated instead of the actual value.
-In the example, $w$ is cached in $w_{cache}$ at the beginning of the unit execution so $\Delta w = w_{cache} - w$ can be computed if necessary when communicate $\Delta w$ to the corresponding units $\Omega_{ij}$.
+Previous to executing the computation enclosed in a unit, a cache is created for each state that is altered by said computation (A).
+The reasoning behind this strategy is the fact that updates to the state are best communicated as relative change compared to a previous state (e.g. previous iteration), whereas the actual algorithm requires the absolute change.
+In order to be able to compute a delta between two defined states, only the cache is altered and compared with the previous version before communicating updates.
+After this initialization step the actual computation $\Delta(\ldots)$ is executed according to (\ref{eqn:delta_upd}), which results in a delta $\Delta w$ that can be used to update the state $w$.
+Instead of applying the delta to actual state $w$, it is applied to the cache $w_{cache}$ only (C).
+When running iterative-convergent algorithms this procedure of updating and caching is repeated multiple times according to the algorithm definition.
+In order for the consistency management to gain a fine grained control over the update communication frequency during the execution, step (D) in the control-flow is a yield component similar to the primitive used in coroutines.
+As with coroutines, the yield suspends the execution of the (update) computation in favor of executing other tasks.
+In case of a unit with consistency management, the yield is triggered on request of the consistency management and at a frequency that is agreed on with the other replicas of the unit.
+Upon a yield, the local progress is communicated to the other units $\Omega_{ij}$ in order to ensure a consistent state.
+For this to happen, the actual state $w$ and the cached version $w_{cache}$ are used to compute $\Delta w = w_{cache} - w$, which is then forwarded to the filter stage (E) if configured.
+The filter stage provides the developer with the ability to control which updates are actually forwarded to the communication stage (F) based on a defined criterion.
+This is necessary for example when there is a bandwidth quota for each machine/unit and only a subset of the updates can be communicated.
+All updates passing the filter stage are then forwarded to the communication stage and sent to the other units over the network.
+Furthermore, if remote updates $w_{remote}$ have been received over the network, these are merged into the actual state $w$ together with the locally cached updates $w_{cache}$.
+A summary of merge strategies together with filter strategies is described in the following section.
+
+
+\section{Strategies}
 
 - resolving conflicting updates, e.g. when accessing remote state
 - deciding when to communicate and what to communicate
 - filtering, prioritizing, communicating, merging
-
-\section{Strategies}
-
-	
