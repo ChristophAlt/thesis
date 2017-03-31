@@ -113,7 +113,34 @@ A summary of merge strategies together with filter strategies is described in th
 
 
 \section{Strategies}
+When executing an algorithm in parallel on a cluster of machines, often additional constraints are induced by the architecture.
+For example, multiple independent tasks could be executed on the same machine and therefore a quota on resources like network bandwidth is enforced on a process level.
+In such cases the consistency management needs additional means to identify the updates that are most important to the algorithm progress.
+Filtering or prioritizing updates allows the consistency management to identify the most important updates that need to be communicated first without exceeding the network quota.
 
-- resolving conflicting updates, e.g. when accessing remote state
-- deciding when to communicate and what to communicate
-- filtering, prioritizing, communicating, merging
+\subsection{Filter}
+The simplest strategy for prioritizing updates is randomly choosing updated parameters of the state for communication until the network quota is exceeded.
+Round-robin prioritization on the other hand repeatedly selects parameters following a fixed schedule.
+A more data-driven approach takes the absolute magnitude of the change
+\begin{equation}
+\mid\Delta w\mid = \mid w - w_{cache} \mid
+\label{eqn:absolute_magnitude}
+\end{equation}
+into account when deciding which parameters to communicate first.
+Depending on the algorithm, the relative change in magnitude
+\begin{equation}
+\mid\frac{\Delta w}{a} \mid = \mid\frac{w - w_{cache}}{a} \mid
+\label{eqn:relative_magnitude}
+\end{equation}
+might be a better prioritization strategy, where $a$ is the current value of the parameter.
+
+\subsection{Merge}
+In addition to prioritization, the merging strategy must be specified as well.
+Merging refers to the process of combining local updates $w_{local}$, remote updates $w_{remote}$ and the current state $w$ to form an updated version of this particular state.
+Merging in general can be described by
+\begin{equation}
+w_{i}^{t} = w_{i}^{t-1} + \gamma\sum_{k = 0}^{K}\Delta w_{k}
+\label{eqn:state_merging}
+\end{equation}
+where $w_i^t$ is the updated state at time $t$, computed by updating the previous version of the state with a weighted sum of the remote states updates $\Delta w_k, k \neq i$ and the local updates $\Delta w_k, k = i$.
+Depending on the partitioning of the state and the algorithm employed, the parameter $\gamma$ is commonly chosen to be either $\frac{1}{K}$ (averaging) or $1$ (adding).
