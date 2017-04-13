@@ -1,3 +1,4 @@
+%!TEX root = ./thesis.tex
 % $Log: mitthesis.cls,v $
 % Revision 1.9  2012/02/15 15:48:16  jdreed
 % Tweak the "permission" statement per the Libraries' specs
@@ -464,18 +465,19 @@ by\par
 \par
 at the
 \par\TUB\par
-\@degreemonth\ \@degreeyear
+\@thesisdate
 \par
 \@copyrightnotice
 \par
 \vskip 3\baselineskip
-\signature{Author}{\@department \\ \@thesisdate}
 \par
-\vfill
-\unvbox\@titlesupervisor
+{\Large Supervisors:}
 \par
-\vfill
-\signature{Certified by}{\@chairmanname \\ \@chairmantitle}
+Prof. Dr. Odej Kao
+\par
+Prof. Dr. Volker Markl
+\par
+Tobias Herb
 \vfill
 \end{titlepage}}
 
@@ -499,8 +501,7 @@ requirements for the \@degreeword\ of \\
 %% Changed from \unvbox to \unvcopy for use with multiple copies of abstract
 %% page.
 %% Krishna Sethuraman (1990)
-\def\endabstractpage{\end{abstract}\noindent
- \unvcopy\@abstractsupervisor \newpage}
+\def\endabstractpage{\end{abstract}\noindent\newpage}
 
 %% This counter is used to save the page number for the second copy of
 %% the abstract.
