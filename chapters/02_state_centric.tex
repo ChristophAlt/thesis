@@ -1,18 +1,19 @@
 %!TEX root = ./../thesis.tex
 
-\chapter{Framework}
+\chapter{State Centric Programming Model}
 \label{c:state_centric}
 Most state-of-the-art frameworks for distributed machine learning like Petuum \cite{Xing2015} and Parameter Server \cite{Li2014} are based on the parameter server concept introduced in the previous section.
 This framework essentially provides a low level API\footnote{Application programming interface} for publishing and retrieving values similar to a distributed key-value store, where the key $i$ is for example the index of a weight vector $w$ stored on the server and the value is the weight $w_i$.
 Implementing an algorithm that relies on a parameter server requires incorporating publishing and retrieval of parameters deeply into the algorithm definition.
 This contrasts the general work flow of developing and testing an algorithm locally on a single machine and then transition to a distributed environment such as a cluster.
 Also current frameworks provide only a minor abstraction, leaving the developer with the task of distributing state, scheduling distributed computation, consistency management and managing cluster resources.
-A developer should be able to focus on the main goal of distributed machine learning, namely an efficient parallel execution.
-This section introduces the general architecture of the framework and its main parts based on the example of iterative-convergent algorithms, though its application is not limited to this particular family.
+A developer should be able to focus on the main goal, namely solving a domain specific problem by the help of distributed machine learning.
+This section introduces the state centric programming model, general architecture of the framework and its main parts based on the example of iterative-convergent algorithms.
+Although its application is not limited to this particular algorithm family.
 
 As depicted in Figure \ref{fig:framework_architecture} the framework consists of three major parts, designed to support the developer with the development as well as execution of distributed machine learning algorithms.
-First, it provides a collection of primitives that can used to describe the algorithm with the help of a state centric programming model.
-The SCPM\footnote{State-centric Programming Model} treats state as a first class citizen which can be distributed according to a given partitioning and altered by local and remote transformation in parallel.
+First, at edit-time it provides a collection of primitives that can used to describe the algorithm with the help of the state centric programming model.
+The programming model treats state as a first class citizen which can be distributed according to a given partitioning and altered by local and remote transformation in parallel.
 Depending on how a state is distributed and the type of transformation applied to it, the consistency management coordinates the distributed execution of all algorithm steps in the most efficient way that still ensures the correctness of the result.
 In the context of machine learning, a correct result can be obtained in different ways as discussed in Section \ref{ss:consistency}.
 Therefore additional primitives are offered by the framework to provide the consistency management with further instructions on how to ensure a consistent distributed execution given a particular state and transformation.
@@ -22,27 +23,30 @@ Therefore additional primitives are offered by the framework to provide the cons
 \caption{Framework Architecture}
 \label{fig:framework_architecture}
 \end{figure}
-Secondly, the framework provides an algorithm parallelization pipeline, which takes the algorithm definition as an input and compiles a physical plan by applying a sequence of enrichment steps to it.
+Secondly, at compile-time the framework provides an algorithm parallelization pipeline, which takes the algorithm definition as an input and compiles a physical plan by applying a sequence of enrichment steps to it.
 These enrichment steps, as discussed in Section \ref{s:algo_parallel_pipeline}, take properties of the algorithm and cluster infrastructure into account to find the optimal execution strategy.
 The physical plan contains a detailed description of how to execute the algorithm in a distributed manner on a specific group of machines within the cluster.
-As the third and final part of the framework, the interpreter is responsible for translating the physical plan into a sequence of control instructions used to control the distributed execution of the algorithm among the participating machines, as can be seen in Figure \ref{fig:framework_driver}.
+As the third and final part of the framework, at run-time the interpreter is responsible for translating the physical plan into a sequence of control instructions.
+These instructions are used to control the distributed execution of the algorithm among the participating machines, as can be seen in Figure \ref{fig:framework_driver}.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.8\textwidth]{img/framework_driver.png}
-\caption{Algorithm Execution Architecture}
+\caption{Driver for Algorithm Execution}
 \label{fig:framework_driver}
 \end{figure}
 The machine running the interpreter is called the driver, which can be either a dedicated machine in the cluster or the developers own machine.
 According to the physical plan, a sequence of steps $S_{ij}, i \in \{1, \ldots, M\}, j \in \{1, 2\}$ is executed on each machine.
-Each step can either be computation, or a control flow operator such as a loop, which in turn contains again a sequence of steps.
+Each step can either be computation, or a control flow operator such as a loop, sequence or parallel.
+The operators are higher order, meaning each operator possibly contains multiple operators as well.
 
 
-\section{State Centric Programming Model}
+\section{Programming Model Primitives}
 In order to support the development process, a programming model is required that is expressive enough to conveniently model the complex dependencies when executing a machine learning algorithm in a distributed manner.
 For this purpose the framework provides a so called state centric programming model, which is motivated by means of the example algorithm definition in (\ref{alg:general_ica}), describing a generic iterative-convergent algorithm as it would be implemented by a developer.
-The example is kept generic because the algorithm definition is very similar among members of the ICA\footnote{iterative-convergent-algorithm} family, only $f_p$ and $\Delta(\ldots)$ must be replaced by the corresponding preprocessing transformation respectively the optimization technique used to iteratively approximating the optimal solution according to Section \ref{ss:optimization}.
+The example is kept generic because the algorithm definition is very similar among members of the algorithm family.
+Only $f_p$ and $\Delta(\ldots)$ must be replaced by the corresponding preprocessing transformation respectively the optimization technique used to iteratively approximating the optimal solution according to Section \ref{ss:optimization}.
 \begin{algorithm}
-\caption{Generic iterative-convergent algorithm}\label{alg:general_ica}
+\caption{Generic Iterative-Convergent Algorithm}\label{alg:general_ica}
 \begin{algorithmic}[1]{}
 \ALGSTATE Data tensor $D \in \mathbb{R}^{n \times d}$, weight tensor $w \in \mathbb{R}^{m \times d}$
 \INPUT algorithm specific hyper-parameters $\theta$, if any
@@ -58,7 +62,7 @@ Figure \ref{fig:ica_control_flow} depicts the definition in (\ref{alg:general_ic
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/ica_control_flow.png}
-\caption{Iterative-convergent algorithm control-flow}
+\caption{Control-Flow, Iterative-Convergent Algorithm}
 \label{fig:ica_control_flow}
 \end{figure}
 The algorithm starts with loading the input data $D$ from an arbitrary storage, followed by one ore more preprocessing steps (e.g. normalization or standardization as well as splitting the data into training and test set \textbf{(A)}).
@@ -66,11 +70,11 @@ A square represents a step of the algorithm, which contains an arbitrary number 
 In the programming model, this step is called a unit and is described in more detail in Section \ref{ss:unit}.
 A transformation is depicted as a circle and can either be applied once (arrow) or multiple times (cyclic arrows) to the state(s) during this particular step.
 After applying the preprocessing the actual training process is triggered, which is contained in a loop \textbf{(B)}.
-A loop symbolizes that the containing steps are executed repeatedly until some termination criterion \textbf{(D)} is satisfied, which is computed in \textbf{(E)}.
+A loop denotes the containing steps are executed repeatedly until some termination criterion \textbf{(D)} is satisfied, which is computed in \textbf{(E)}.
 For most machine learning algorithms the termination criterion can either be a fixed number of iterations, the change in objective $Q$ between iterations or the generalization performance.
 \textbf{(C)} is the actual training step which iteratively refines the model by updates computed from the input data according to \ref{eqn:delta_upd}.
 It can already be seen from the example that the framework must be capable of executing a complex sequence of arbitrary control flow operators and transformation steps in parallel on multiple machines.
-The framework therefore defines primitives to define the control flow as well as units and state.
+The programming model therefore introduces primitives to define the control flow as well as units and state.
 An algorithm expressed in this form could be executed as is on a single machine without modification because its sequential, non-parallel execution ensures the consistency of all involved states throughout the algorithm execution.
 Consistency in this context means that, because of its sequential execution, no conflicts can occur when altering a particular state as described in Section \ref{ss:consistency}.
 Distributing said algorithm therefore requires additional instructions on how to ensure that conflicts can be resolved properly.
@@ -79,16 +83,16 @@ This is the responsibility of the algorithm parallelization pipeline, described 
 The next sections introduce these key elements of the programming model.
 
 \subsection{State}
-Assuming the algorithm described in (\ref{alg:general_ica}) should be parallelized with a dop\footnote{degree of parallelism} of two.
+Assuming the algorithm described in (\ref{alg:general_ica}) should be parallelized with a degree of parallelism of two.
 The parallelization makes it necessary to replicate each transformation step of the sequential algorithm on $K = 2$ machines, as shown in Figure \ref{fig:ica_control_flow_dist}.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/ica_control_flow_dist.png}
-\caption{Distributed Machine Learning Pipeline for Iterative-convergent Algorithms}
+\caption{Distributed Control-Flow, Iterative-Convergent Algorithm}
 \label{fig:ica_control_flow_dist}
 \end{figure}
-It is worth noting that the transformation logic stays the same independently of the degree-of-parallelism.
-Including a dop of one, which is essentially a single machine.
+It is worth noting that the transformation logic stays the same independently of the degree of parallelism.
+Including a degree of parallelism of one, which is essentially a single machine.
 Therefore the framework instead of distributing the transformation focuses on how to distribute the state and keeping it consistent throughout the execution of each transformation step.
 Hence the programming model introduces the concept of state, which is essentially a container for an arbitrary, distributable data structure.
 A state $\gamma$ must be partitionable, meaning it can be distributed according to a partitioning $\{P_{\gamma}\}_{k=1}^K$, where $K$ is the degree of parallelism.
@@ -98,19 +102,21 @@ For example the algorithm in (\ref{alg:general_ica}) requires two states, namely
 In order to parallelize the algorithm, the parallelization pipeline requires a partitioning $\{P_\gamma\}_{k=1}^K$ for both states, which in the context of machine learning can be divided into the following cases, shown in Table \ref{tab:ica_partitioning}.
 \begin{table}[h]
 \begin{center}
-\begin{tabular}{ | c | c | c |}
+\begin{tabular}{ | V | V | V | N}
 \hline
-$\gamma_w \setminus \gamma_D$ & partitioned & replicated \\ \hline
-partitioned & $\gamma_w^S \wedge \gamma_D^T$ &  $\gamma_w^S \wedge \gamma_{D_T}$\\ \hline
-replicated & $\gamma_{w_S} \wedge \gamma_D^T$ & $\times$\\
+$\gamma_w \setminus \gamma_D$ & partitioned & replicated & \\[15pt]
+\hline
+partitioned & $\gamma_w^S \wedge \gamma_D^T$ &  $\gamma_w^S \wedge \gamma_{D_T}$ & \\[15pt]
+\hline
+replicated & $\gamma_{w_S} \wedge \gamma_D^T$ & $\times$ & \\[15pt]
 \hline
 \end{tabular}
 \label{tab:ica_partitioning}
-\caption{Distributed Machine Learning Pipeline for Iterative-convergent Algorithms}
+\caption{State Partitioning Schemes}
 \end{center}
 \end{table}
 Where $S \subset \{1, \ldots, M\}$ and $T \subset \{1, \ldots, M\}$, with $M$ being the number of available machines in the cluster and $\mid S \mid = \mid T \mid = K$.
-In this context, a subscript set of indices means the state is replicated among the set of machines, whereas a superscript set of indices indicates the state is partitioned among the set of machines.
+In this context, a subscript set of indices denotes the state is replicated among the set of machines, whereas a superscript set of indices indicates the state is partitioned among the set of machines.
 As described in Section \ref{ss:state_partitioning}, $w_S \wedge D^T$ equals data-parallelism, $w^S \wedge D_T$ equals model-parallelism and $w^S \wedge D^T$ is a hybrid approach that is often used in a parameter server setup where model and input data are both distributed among a set of machines.
 The example in Figure \ref{fig:ica_control_flow_dist} therefore depicts a data-parallel approach because the input data $D$ is partitioned into $D^{\{1,2\}}$, whereas the model $w$ is replicated across machines $w_{\{1,2\}}$.
 In general the distribution of state in machine learning depends on the size of the problem and the algorithm employed to obtain an optimal solution for the given objective.
@@ -123,9 +129,14 @@ On the other hand, if a coordinate-wise optimization technique is used, which on
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.4\textwidth]{img/row_col_dist.png}
-\caption{Partitioning of input data in distributed machine learning}
+\caption{State Partitioning in Distributed Machine Learning}
 \label{fig:row_col_dist}
 \end{figure}
+\begin{definition}
+A state is denoted by $\gamma$ and resembles a distributable data structure with a partitioning $\{P_\gamma\}_{k=1}^K$ and a degree of parallelism $K$.
+Each state has a placement $\{S_\gamma\}_{k=1}^K$ assigned to it, with $\{S_\gamma\}_k = i$ denoting partition $\{P_\gamma\}_k$ is assigned to machine $i$ and $i \in \{1, \ldots, M\}$ and $M$ refers to the number of available machines.
+A state can be either replicated, which is denoted by $\gamma_{\{S_\gamma\}}$, or partitioned, which is denoted by $\gamma^{\{S_\gamma\}}$.
+\end{definition}
 
 \subsection{Unit}
 \label{ss:unit}
@@ -139,7 +150,7 @@ Figure \ref{fig:unit} depicts the general layout of a unit.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.4\textwidth]{img/unit.png}
-\caption{Layout of a Unit}
+\caption{Unit Architecture}
 \label{fig:unit}
 \end{figure}
 The connectors describe an interface for receiving a control flow signal, triggering the execution of the computation and emitting a control flow signal after the work is done.
@@ -149,9 +160,14 @@ This closely resembles the control flow known from imperative programming langua
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.8\textwidth]{img/driver_units.png}
-\caption{Units controlled by the Driver}
+\caption{Driver controlling Units}
 \label{fig:driver_units}
 \end{figure}
+\begin{definition}
+A unit is denoted by $\Omega$ and resembles a distributable computation step.
+Each unit has a placement $\{S_\Omega\}_{k=1}^K$ assigned to it, with $\{S_\Omega\}_k = i$ denoting unit $\Omega_k$ is assigned to machine $i$ and $i \in \{1, \ldots, M\}$ and $M$ refers to the number of available machines.
+In addition, each unit $\Omega_k$ has a state assignment $\{\gamma_{\Omega_k}\} \subset \{\gamma_1, \ldots, \gamma_N\}$ specifying the states that are either the input or result of the transformation applied inside the unit.
+\end{definition}
 
 \subsection{Synchronization}
 \label{ss:synchronization}
@@ -168,7 +184,7 @@ Secondly, as the parallel instances of a unit span a consistency scope, as can b
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.3\textwidth]{img/consistency_scope.png}
-\caption{Consistency Scope of parallel Units}
+\caption{Consistency Scope of Unit Replicas}
 \label{fig:consistency_scope}
 \end{figure}
 
@@ -177,7 +193,7 @@ This section combines the primitives introduced in the previous sections with th
 In addition to the original definition, a partitioning is required for each of the states $D$ and $w$, serving as instructions for the framework on how to distribute the state.
 Furthermore the unit scopes $\Omega_1, \Omega_2$ must be defined within the algorithm and additionally the synchronization scheme must be specified in order for the consistency management to work properly.
 \begin{algorithm}
-\caption{SCPM iterative-convergent algorithm definition}\label{alg:scpm_ica}
+\caption{State-Centric Iterative-Convergent Algorithm Definition}\label{alg:scpm_ica}
 \begin{algorithmic}[1]{}
 \ALGSTATE Data tensor $D \in \mathbb{R}^{n \times d}$, weight tensor $w \in \mathbb{R}^{m \times d}$
 \PARTITIONING $\{P_D\}_{k=1}^K$, $\{P_w\}_{k=1}^K$
@@ -204,7 +220,7 @@ The logical plan is then combined with information about the cluster, such as th
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/algo_parallel_pipeline.png}
-\caption{Algorithm parallelization pipeline}
+\caption{Algorithm Parallelization Pipeline}
 \label{fig:parallel_pipeline}
 \end{figure}
 The following sections describe each step and the resulting intermediate representation in more detail.
@@ -245,5 +261,3 @@ The parallelizer first uses the dop $k$ to distribute each state according to th
 Each unit $\Omega_j$ is translated into a parallel control-flow operator containing the replicas $\Omega_{ij}$ for $i \in \{1, \ldots, k\}$.
 Furthermore a machine is assigned to each unit so it can be scheduled accordingly by the interpreter.
 The parallelizer also must take care of the locality of state and schedule the units accordingly.
-
-\textbf{NOTES:} termination criterion should be something like until $f_T(w, D_{test})$ equals true, this enables the use of $\Omega_T$ as unit

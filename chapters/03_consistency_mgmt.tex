@@ -20,7 +20,7 @@ Figure \ref{fig:adapt_consist_mgmt} depicts the architecture and connections bet
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.7\textwidth]{img/adapt_consist_mgmt.png}
-\caption{Architecture of Adaptive Consistency Management}
+\caption{Adaptive Consistency Management Architecture}
 \label{fig:adapt_consist_mgmt}
 \end{figure}
 The first part of the consistency management resides on the driver and is responsible for collecting feedback from the machines.
@@ -40,7 +40,7 @@ In algorithm steps where a unit is parallelized, state level consistency managem
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/par_repl_model.png}
-\caption{}
+\caption{Partitioned and Replicated State}
 \label{fig:par_repl_model}
 \end{figure}
 As depicted in Figure \ref{fig:par_repl_model}, read-only states such as the input data $D$ are not subject to consistency management, whereas states that are altered by more than one unit in parallel must be kept consistent.
@@ -60,7 +60,7 @@ First, with state-centric consistency, as depicted in Figure \ref{fig:state_cent
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.5\textwidth]{img/state_centric_consist.png}
-\caption{}
+\caption{State-Centric Consistency Management}
 \label{fig:state_centric_consistency}
 \end{figure}
 The consistency management and actual state are hidden behind a proxy, which mimics the interface of the state.
@@ -75,7 +75,7 @@ Second, with computation-centric consistency, as can be seen in Figure \ref{fig:
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.5\textwidth]{img/computation_centric_consist.png}
-\caption{}
+\caption{Computation-Centric Consistency Management}
 \label{fig:computation_centric_consistency}
 \end{figure}
 No coupling between state and framework exists, which makes it easier for a developer to reuse existing code.
@@ -91,7 +91,7 @@ The control-flow contains the actual computation followed by a number of steps a
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/unit_internal_flow.png}
-\caption{Unit internal Control-flow}
+\caption{Unit-Internal Control-flow}
 \label{fig:unit_internal_flow}
 \end{figure}
 Previous to executing the computation enclosed in a unit, a cache is created for each state that is altered by said computation (A).

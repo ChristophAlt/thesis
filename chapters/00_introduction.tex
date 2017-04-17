@@ -27,7 +27,7 @@ MapReduce essentially led the path to a convenient and widespread use of big dat
 The project quickly gained traction and has spawned many business grade platforms, which quickly gained widespread adoption and by now provides a whole ecosystem around big data processing. The software stack includes a fault tolerant distributed file-system (HDFS) a MapReduce framework and a cluster resource manager (YARN) \cite{KumarVavilapalli2013}.
 On the other hand, MapReduce suffers from some practical limitations that lead to the development of new, more sophisticated and specialized big data frameworks. With the most widely used frameworks being Apache Spark \cite{Zaharia2010}, Apache Flink \cite{Alexandrov2014} and GraphLab \cite{Low2012}.
 The first two frameworks use at it's core a data-flow pipeline based architecture, whereas the latter uses a graph abstraction to model particular algorithms.
-All this works well for algorithms that can be expressed as an extract-transform-load (ETL) pipeline and are often embarrassingly parallel in nature.
+All this works well for algorithms that can be expressed as an extract-transform-load pipeline and are often embarrassingly parallel in nature.
 On the other hand, machine learning algorithms often rely heavily on many, computationally light, iterations to iteratively update a shared state (model) such as logistic regression or Latent Dirichlet Allocation (LDA).
 These so called iterative-convergent algorithms required a change in how systems for distributed machine learning operate at its core.
 
@@ -36,7 +36,7 @@ These so called iterative-convergent algorithms required a change in how systems
 This limitation essentially sparked the development of specialized frameworks for distributed execution of iterative-convergent algorithms used in common machine learning tasks.
 The most widely recognized systems are Petuum \cite{Xing2015}, ParameterServer \cite{Li2014} and MALT \cite{Li2015}.
 Different from the MapReduce paradigm, these frameworks, instead of using a pipeline to transform an immutable dataset into another immutable dataset, operate on a fixed but mutable state, which is held by a single machine or distributed over multiple machines.
-This state can then be updated by workers that computed an update locally and sent it to these state keepers taking updates and merging these into the state by some user defined function.
+This state can then be updated by workers computing an update locally and sending it to these state keepers taking updates and merging these into the state by some user defined function.
 While these systems can increase the performance on machine learning algorithms by an order of magnitude \cite{Xing2015} compared to data-flow systems, most systems come with either limited usability, which makes it difficult to implement additional algorithms, are tied to a specific algorithm or are very low level frameworks.
 Efficiently distributing machine learning algorithms while at the same time provide the ability to concisely express machine learning algorithms remains an extremely challenging problem.
 A system targeting the execution of those algorithms at scale must therefore provide the ability to concisely express the underlying algebraic structure and at the same time be flexible enough to allow experimentation and fine tuning.
@@ -50,7 +50,7 @@ The framework design is optimized for efficient parallel asynchronous execution 
 All of this can be easily customized for quick prototyping and fine tuning, which makes the system suited for developers as well as researchers.
 The goal of this thesis is to implement the state centric programming model and show its performance in comparison with Apache Spark on an example implementation of the CoCoA \cite{Jaggi2014} framework.
 Chapter \ref{c:background} starts off by providing a background on the architecture and inner workings of state of the art frameworks for big data processing and distributed machine learning.
-In addition the the most commonly used algorithms and optimization techniques are introduced.
+Additionally the most commonly used algorithms and optimization techniques are introduced.
 The majority of those algorithms can be classified into the group of so called iterative-convergent algorithms for which a more formal treatment is provided.
 Furthermore the chapter introduces the common algorithm parallelization strategies in distributed machine learning.
 The chapter concludes by providing an overview over the challenges and issues that need to be addressed and considered when developing a distributed machine learning system and how this is achieved by current frameworks.

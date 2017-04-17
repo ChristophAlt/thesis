@@ -9,7 +9,7 @@ Furthermore the field of distributed machine learning is explained in more detai
 
 \section{Algorithms and Optimization}
 
-\subsection{Iterative Convergent Algorithms}
+\subsection{Iterative-convergent Algorithms}
 \label{ss:ica}
 Consider a supervised learning setup with a dataset $D = \{z_1,\ldots,z_n\}$ with each example $z_i$ being represented by a pair $(x_i,y_i)$ consisting of an input $x_i$ and a scalar output $y_i$.
 Consider also a loss function $\ell(\hat{y},y)$ quantifying the cost of predicting $\hat{y}$ when the true output is $y$. As a model, a family $F$ of functions $f_w(x)$ parameterized by a weight vector $w$ is chosen.
@@ -25,13 +25,13 @@ To obtain the optimal solution those algorithms try to iteratively update the we
 w^{t} = w^{(t-1)} + \Delta(D, w^{(t-1)})
 \label{eqn:delta_upd}
 \end{equation}
-The update function depends on the algorithm employed and can be viewed as a procedure of obtaining a step towards a better model. At each iteration an update $\Delta w$ is computed and applied to the previous weight vector until a stopping condition is satisfied. E.g. the distance to the optimal solution or the objective difference between two iterations is monitored. When the difference is below a certain threshold the computation stops and the algorithm is said to be converged.
+The update function depends on the algorithm employed and can be viewed as a procedure of obtaining a step towards a better model. At each iteration an update $\Delta w$ is computed and applied to the previous weight vector until a stopping condition is satisfied. E.g. the objective difference between two iterations or the empirical loss on a test set is monitored. If the difference is below a certain threshold the computation stops and the algorithm is said to be converged.
 
 
 \subsection{Convex Optimization}
 \label{ss:optimization}
 In order to estimate the optimal parameters $w^*$ of a function belonging to class $f_{w^*} \in F$, numerous techniques can be employed to estimate said parameters.
-In many cases, especially large scale machine learning methods such as (stochastic) gradient descent and coordinate ascent are used to iteratively optimized the parameterization of the chosen function class.
+In many cases, especially large scale machine learning, methods such as (stochastic) gradient descent and coordinate ascent are used to iteratively optimized the parameterization of the chosen function class.
 Both techniques represent different rules of computing the update shown in \ref{eqn:delta_upd}.
 Gradient descent updates the weights $w$ at each iteration $t$ on the basis of the gradient of $E_n(f_w)$,
 \begin{equation}
@@ -39,7 +39,7 @@ w^{t} = w^{(t-1)} - \eta\frac{1}{n}\sum_{i=0}^{n}\nabla_wQ(z_i,w^{(t-1)})
 \label{eqn:gd_update}
 \end{equation}
 where $\eta$ is a chosen gain, often referred to as learning rate.
-While this achieves linear convergence under sufficient regularity assumptions and a sufficiently small learning rate $\eta$ \cite{dennis1996numerical} \cite{bottou2010large} a more simplified version is commonly used in practice, called stochastic gradient descent (SGD).
+While this achieves linear convergence under sufficient regularity assumptions and a sufficiently small learning rate $\eta$ \cite{dennis1996numerical} \cite{bottou2010large}, a more simplified version called stochastic gradient descent (SGD) is commonly used in practice.
 Instead of computing the gradient $\nabla_wE_n(f_w)$ exactly, the gradient is estimated at each iteration $t$ based on a single randomly picked example $z_t$.
 \begin{equation}
 w^{t} = w^{(t-1)} - \eta_t\nabla_wQ(z_t,w^{(t-1)})
@@ -73,6 +73,8 @@ On the other hand, coordinate descent, described in (\ref{alg:scd}), iteratively
 \Until{termination criteria satisfied}
 \end{algorithmic}
 \end{algorithm}
+Where $e_k$ is the unit vector in dimension $k$ and $\alpha_k$ is the step size.
+The step size can be chosen in multiple ways, e.g. solving for the exact minimizer along a single dimension with the other dimensions fixed or a traditional line search.
 
 \subsection{CoCoA}
 Due to their widespread application in large scale machine learning and recent advances in the field of distributed optimization the thesis focuses on linear regularized objectives.
@@ -137,12 +139,14 @@ Figure \ref{fig:ml_dataflow} shows a data-flow pipeline as it would be used for 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.8\textwidth]{img/ml_dataflow.png}
-\caption{Iterative-convergent Algorithms and Data-flow}
+\caption{Iterative-Convergent Algorithms with Data-Flow}
 \label{fig:ml_dataflow}
 \end{figure}
-At first, the data is loaded partition-wise from the storage into an RDD\footnote{Resilient Distributed Dataset}, which is the general representation of a dataset in Spark.
+At first, the data is loaded partition-wise from the storage into an Resilient Distributed Dataset (RDD), which is the general representation of a dataset in Spark.
+As data-flow systems follow closely the paradigms of functional programming and therefore must satisfy referential transparency, each dataset is an immutable data structure that can be transformed into another dataset by applying some function to it.
+The immutability of a dataset eases the development of distributed algorithms considerably, as no means of synchronization such as locks are necessary when multiple machines work on the same dataset.
 Following the data loading, a mapping phase is scheduled that does one pass over the local partition of the input dataset in order to compute a refined model according to the employed optimization technique.
-In the last phase, all local models are sent to a reducer over the network, which in turn combines the incoming models into a single model according to a user defined function.
+In the last phase, all local models are sent to a reducer over the network, which in turn combines the received models into a single model according to a user defined function.
 Depending on the number of iterations configured, the flow of mapping over the partitioned data followed by reducing the local models is executed repeatedly.
 This procedure follows the scheme proposed in \cite{zinkevich2010parallelized} and therefore has the same limitations.
 The weak points are the inflexibility to control the communication frequency of the refined models as well as limiting the communication to only the important changes in model parameters.
@@ -154,24 +158,24 @@ While the execution of iterative-convergent algorithms on a single machine is st
 This posses a number of challenges which are often observed when parallelizing algorithms, such as partitioning the state used in the algorithm as well as communication and consistency management.
 In this context, state refers to a structure containing arbitrary data e.g. an array, tensor or list.
 While intra-node parallelism in multi-core and multi-processor systems can mitigate these problems, it is not satisfying in terms of cost and scalability.
-On the other hand, inter-node parallelism has the desired properties but can not be easily parallelized.
+On the other hand, inter-node parallelism has the desired properties but can not be easily achieved while maintaining high performance.
 Therefore in the past decade a lot of research has focused on inventing new systems to deal with those challenges and make distributed machine learning more efficient and scalable.
 
 \subsection{State Partitioning}
 \label{ss:state_partitioning}
-Depending on the algorithm and optimization technique employed to solve for the optimal solution, there exist multiple approaches to distribute the state used in the algorithm (e.g. input data, model parameters).
+Depending on the algorithm and optimization technique employed to solve for the optimal solution, there exist multiple approaches to distribute the state used in the algorithm (e.g. input data, model).
 As depicted in Figure \ref{fig:data_parallelism}, an initial approach by Zinkevich et. al \cite{zinkevich2010parallelized} introduced a data-parallel approach for computing stochastic gradient descent (SGD) via the MapReduce framework.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/data_parallelism.png}
-\caption{Data-parallelism via MapReduce}
+\caption{Data-Parallelism with MapReduce}
 \label{fig:data_parallelism}
 \end{figure}
 In this context, data-parallelism means that $K$ machines work in parallel on the input data $D$, hence the data is distributed according to partition $\{P_k\}_{k=1}^K$ into local parts $D^k$.
 Each machine maintains a local model $w_k$ that is iteratively refined based on \ref{eqn:delta_upd} until convergence, using only the local part of the input data $D^k$.
 The local update is of the form
 \begin{equation}
-w_k^{t} = w_k^{t-1} + \Delta(w_k^{t-1},D^k)
+w_k^{t} = w_k^{(t-1)} + \Delta(w_k^{(t-1)},D^k)
 \label{eqn:local_delta_upd}
 \end{equation}
 The final model $w_{final}$ is then obtained in the reduce step by averaging over all local models $w_{k}$.
@@ -179,16 +183,17 @@ The final model $w_{final}$ is then obtained in the reduce step by averaging ove
 w_{final} = \frac{1}{K}\sum_{k=1}^{K}w_{k}
 \label{eqn:avg_sgd}
 \end{equation}
-Even though this approach works well in practice and gives considerable good results, it suffers from two limitations.
-First, if the size of a local model $w_k$ exceeds the available memory on a single machine, the algorithm can not work properly.
+Even though this approach works well in practice and gives considerable good results, it suffers from three limitations.
+First, in certain cases the size of a local model $w_k$ exceeds the available memory on a single machine, which leads to the algorithm not work properly.
 This is the case e.g. for topic models at web scale or deep neural networks used in the Google Brain project \cite{dean2012large}, consisting of billions of parameters.
 Second, even though the scalability improved by introducing data-parallelism the lack of parameter exchange during runtime can lead to suboptimal performance \cite{xing2015strategies} as the algorithm essentially resembles batch gradient descent, which is known to have suboptimal convergence properties compared to mini-batch or stochastic gradient descent \cite{bottou2010large} \cite{smith2016cocoa}.
-In order to improve the performance, a system must be able to communicate more frequently and it must also be able to partition a model across multiple machines to scale with the size of the model.
-Following those requirements resulted in the publication of the parameter server \cite{Li2014}, which provides a framework for inter-node parallelism of iterative convergent algorithms.
+Third, even though state immutability is beneficial in data-flow extract-transform-load pipelines it seriously affects performance when running algorithms that simultaneously refine a state frequently in multiple consecutive iterations.
+In order to improve the performance, a system therefore must be able to employ mutable state, communicate more frequently and must also be able to distribute a model across multiple machines to scale with the size of the model.
+Following those requirements resulted in the publication of the parameter server \cite{Li2014}, which provides a framework for inter-node parallelism of iterative-convergent algorithms.
 
 \subsection{Communication}
-As depicted in Figure \ref{fig:param_server}, the parameter server is a group of an arbitrary number of machines $\{S\}_{l=1}^L$, e.g. $S = \{S_1, S_2\}$ where each member of the group is responsible for storing a part of the model $\{w\}_{l=1}^L$ and making it accessible to the workers $\{W\}_{k=1}^K$, e.g. $W = \{W_1, W_2, W_3\}$, via a defined interface that is similar to a key-value store.
-The model is partitioned among the machines of the server to provide optimal throughput, fault tolerance and to mitigate the effect of a model exceeding the memory of a single machine.
+As depicted in Figure \ref{fig:param_server}, the parameter server is a group of an arbitrary number of machines $\{S\}_{l=1}^L$, e.g. $S = \{S_1, S_2\}$ where each member of the group is responsible for storing a part of the model according to the partitioning $\{P_w\}_{l=1}^L$ and making it accessible to the workers $\{W\}_{k=1}^K$, e.g. $W = \{W_1, W_2, W_3\}$, via a defined interface similar to a key-value store.
+The model is partitioned among the $L$ machines of the server to provide optimal throughput, fault tolerance and to mitigate the effect of a model exceeding the memory of a single machine, if necessary.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.7\textwidth]{img/param_server.png}
@@ -197,25 +202,25 @@ The model is partitioned among the machines of the server to provide optimal thr
 \end{figure}
 Each of the workers maintains a local partition of the input data $\{D\}_{k=1}^K$, which is used to iteratively compute updates for the parameters $w$ according to
 \begin{equation}
-\Delta w_{k_i}^{t} = \Delta(w_{k_i}^{t-1},D^k).
+\Delta w_{k_i}^{t} = \Delta(w_{k_i}^{(t-1)},D^k).
 \label{eqn:local_delta_upd_param}
 \end{equation}
 In the parameter server setup, the local state $w$ acts as a cache for global parameters in order to reduce network usage.
-Therefore, depending on the caching policy, $w_{k_i}$ can either be directly read from the local cache or must be retrieved from the parameter server.
-Additionally to applying the update to the local model $w$, the difference $\Delta w_{k_i}^{t}$ is published to the parameter server as well.
-The logic on the server takes care of applying the update to the corresponding entry $w_i$ to make the progress available to all other workers $W_i$, $i \neq k$.
+Depending on the caching policy, $w_{k_i}$ can either be directly read from the local cache or must be retrieved from the parameter server.
+Additionally to applying the update to the local model $w$, the delta $\Delta w_{k_i}^{t}$ is published to the parameter server as well.
+The logic on the server takes care of applying the update to the corresponding entry $w_i$, in order to make the progress available to all other workers $W_i$, $i \neq k$.
 In case multiple updates for the same parameter $w_i$ arrive at the same time, a user defined function (UDF) needs to be provided to the server, which takes care of combining those updates so it can be applied to the parameter stored on the server.
-The procedure of retrieving, updating and publishing is executed concurrently on all workers.
+In contrast to other algorithms and similar to conflict-free replicated data types (CRDTs) the updates are associative and hence do not need to follow a total ordering when combined.
+Therefore, the procedure of retrieving, updating and publishing can be executed concurrently on all workers.
 This enables all workers to work in parallel on the iterative parameter refinement while asynchronously updating and retrieving the parameters necessary for computing the next update.
-The procedure of updating the model in parallel is also known as model-parallelism.
 
 While this schema has been proven to work well in practice \cite{Li2014} \cite{dai2014high}, a couple of issues still remain when running iterative-convergent algorithms at scale using the parameter server.
 According to \cite{wei2015managed} this can be viewed as finding the trade-off between algorithm throughput and data throughput.
 In other words the challenge is to find a balance between the quality of parameter refinements and the quantity at which they are generated.
 As with distributed systems in general, network communication is the bottleneck in distributed machine learning as well.
-Even though, due to the stochastic nature of many machine learning algorithms, the communication can be reduce compared to the exact serial algorithm, it has been proven that fresher model parameters increase the algorithm throughput per iteration \cite{langford2009slow}.
+Even though, due to the stochastic nature of many machine learning algorithms, there exists a flexibility in the rate and amount of communication compared to the exact serial algorithm, it has been proven that fresher model parameters increase the algorithm throughput per iteration \cite{langford2009slow}.
 Therefore, in order to guarantee an optimal algorithm throughput, a worker should always work with the latest parameters.
-On the other hand, exchanging parameter updates over the network more frequently is time consuming, which leaves less time to run local computation and therefore essentially decreases the data throughput due to increased time spent on network management.
+On the other hand, exchanging parameter updates over the network more frequently consumes more system resources, which leaves less time to run local computation and therefore essentially decreases the data throughput due to increased time spent on network management.
 The second issue concerns the relaxed consistency among participating workers due to reduced communication compared to the serial algorithm.
 Though this is what makes the parameter server concept so powerful because it increases the data throughput by relaxing the consistency requirements when updating parameters on the server.
 By decoupling the progress of workers it is possible to minimize the effect of stragglers and synchronization delay between workers \cite{ananthanarayanan2013effective}.
@@ -225,15 +230,16 @@ Finding the balance between algorithm throughput and data throughput can therefo
 
 \subsection{Consistency}
 \label{ss:consistency}
-The most important part of any distributed system is the synchronization strategy used to ensure consistency among multiple machines concurrently accessing and updating some shared state.
+The most important part of any distributed system is the synchronization strategy used to ensure consistency of a state among multiple machines concurrently accessing and updating it.
+It must be emphasized that consistency not only concerns proper synchronization of simultaneous state access but also synchronization of parallel computation.
 In distributed machine learning the shared state is the model, which is for example stored in a parameter server and continuously refined by updates locally computed by a worker and then published to the server.
-There are three schemes used to synchronize workers during the iterative parameter refinement.
+There are three schemes used to synchronize computation on workers during the iterative parameter refinement.
 \textit{Bulk synchronous parallelization (BSP)} leads to the best algorithm throughput (convergence achieved per number of examples processed).
 In this scheme, all workers are required to finish their current iteration and at the end successfully publish all updates to the parameter server.
 The server then computes a refined model $w^t$ according to \ref{eqn:bsp_upd} and each worker retrieves the updated parameters before beginning the next iteration.
 This synchronization scheme guarantees consistency among all nodes at all times.
 \begin{equation}
-w^{t} = w^{t-1} + \frac{1}{K}\sum_{k=1}^{K}\Delta(w^{t-1}_{k}, D{k})
+w^{t} = w^{(t-1)} + \frac{1}{K}\sum_{k=1}^{K}\Delta(w^{(t-1)}_{k}, D{k})
 \label{eqn:bsp_upd}
 \end{equation}
 While this synchronization strategy essentially recovers the sequential algorithm for a single machine and has the same convergence properties and guarantees, it suffers from a severe limitation when used in a distributed setup \cite{langford2009slow}.
@@ -252,7 +258,8 @@ The straggler problem can be mitigated by this synchronization scheme as well, a
 \end{figure}
 Even though worker $W_3$ is a straggler, which would have prevented the remaining workers $\{W_2, W_3\}$ from proceeding beyond the synchronization barrier of iteration 1, the workers can continue with their next iterations without waiting for the slower worker.
 Although this consistency scheme seems to work quite well in practice \cite{Li2014}, it lacks formal convergence guarantees and can even diverge \cite{dai2014high}.
-This stems from the fact that no theoretical convergence bound can be established as the divergence in iteration between workers is unbound.
+One reason for this is the fact that the divergence in iterations between workers is unbound, therefore no theoretical convergence bound can be established.
+Furthermore the lack of synchronization can lead to a situation where parameter updates computed on slower workers based on stale parameters spoil the current global solution. 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.6\textwidth]{img/ssp_straggler.png}
