@@ -77,6 +77,7 @@ Where $e_k$ is the unit vector in dimension $k$ and $\alpha_k$ is the step size.
 The step size can be chosen in multiple ways, e.g. solving for the exact minimizer along a single dimension with the other dimensions fixed or a traditional line search.
 
 \subsection{CoCoA}
+\label{ss:cocoa}
 Due to their widespread application in large scale machine learning and recent advances in the field of distributed optimization the thesis focuses on linear regularized objectives.
 The theoretical contemplation as well as the experiments in Section \ref{c:experiments} focus on a framework for convex optimization problems called CoCoA (Communication-efficient distributed dual Coordinate Ascent) \cite{Jaggi2014} and its successors CoCoA$^+$\cite{smith2015l1} and PROXCoCoA$^+$\cite{smith2016cocoa}.
 CoCoA as described in Algorithm \ref{alg:cocoa} provides a communication-efficient framework for solving convex optimization problems of the following form
@@ -119,7 +120,7 @@ $\alpha_{[k]_i}$ denotes the local weight vector stored on machine $k$ with $\al
 \State $t \gets t + 1$
 \For{$k \in \{1,\ldots,K\}$}
 \State obtain an approximate solution $\Delta\alpha_{[k]}$ for the local subproblem \ref{eqn:min_local_subp}
-\State update local weights $\alpha_{[k]}^{t} = \alpha_{[k]}^{t-1} + \gamma\Delta\alpha_{[k]}$
+\State update local weights $\alpha_{[k]}^{t} = \alpha_{[k]}^{(t-1)} + \gamma\Delta\alpha_{[k]}$
 \State update shared parameter vector $\Delta v_k = A_{[k]}\Delta\alpha_{[k]}$
 \EndFor
 \State compute $v^{t} = v^{t-1} + \gamma\sum_{k=1}^K\Delta v_k$

@@ -2,6 +2,41 @@
 
 \chapter{Experiments}
 \label{c:experiments}
+This chapter introduces a series of experiments that have been conducted in order to empirically evaluate the current performance of the framework.
+At first a comparison against Apache Spark is done regarding algorithm performance in order to evaluate the current status of the framework and prove the usefulness of the programming model.
+Apache Spark has been chosen as it is the current state-of-the-art system for distributed machine learning.
+The following section focuses on the evaluation of the consistency management part.
+These experiments evaluate the impact of communication frequency, synchronization strategy as well as filter and merging strategies on the overall algorithm performance. 
 
-\textbf{NOTES:}
-- elastic-net in the cocoa setup
+\section{Experiment Setup}
+As the algorithm for comparison, elastic-net regularized linear regression within the CoCoA framework is employed as described in section \ref{ss:cocoa}.
+The cluster itself consists of 8 machines, each machine is equipped with 16 GB of RAM and 8 Intel Xeon E3-1230 V2 CPUs running at 3.30GHz.
+All nodes are connected via 1 GBit Ethernet.
+Distributed experiments running Apache Spark and the framework use 8 machines if not stated otherwise.
+As a baseline, a single-core implementation of the algorithm is used.
+In order to show the algorithm performance on diverse tasks, datasets with different properties with regarding the ratio between number of examples and feature size as well as sparsity are used, as can be seen in Table \ref{tab:datasets}.
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{ | c | c | c | c |}
+\hline
+\textbf{Dataset} & \textbf{Training Size} & \textbf{Feature Size} & \textbf{Sparsity} \\ \hline
+epsilon & 400 K & 2 K & 1.0 \\ \hline
+url & 2.4 M & 3.2 M & 3.5e-5 \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Datasets for Empirical Evaluation}
+\label{tab:datasets}
+\end{table}
+
+\section{Algorithm Performance}
+
+\section{Consistency Management}
+\subsection{Communication Frequency}
+
+\subsection{Synchronization Strategy}
+
+\subsection{Filtering Strategy}
+
+\subsection{Merging Strategy}
