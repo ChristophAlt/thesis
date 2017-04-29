@@ -105,8 +105,8 @@ Upon a yield, the local progress is communicated to the other units $\Omega_{ij}
 For this to happen, the actual state $w$ and the cached version $w_{cache}$ are used to compute $\Delta w = w_{cache} - w$, which is then forwarded to the filter stage (E) if configured.
 The filter stage provides the developer with the ability to control which updates are actually forwarded to the communication stage (F) based on a defined criterion.
 This is necessary for example when there is a bandwidth quota for each machine/unit and only a subset of the updates can be communicated.
-All updates passing the filter stage are then forwarded to the communication stage and sent to the other units over the network.
-Furthermore, if remote updates $w_{remote}$ have been received over the network, these are merged into the actual state $w$ together with the locally cached updates $w_{cache}$.
+All updates passing the filter stage are then forwarded to the communication stage and sent to the other units over the network (G).
+Furthermore, if remote updates $w_{remote}$ have been received over the network, these are merged into the actual state $w$ together with the locally cached updates $w_{cache}$ (H).
 A summary of merge strategies together with filter strategies is described in the following section.
 
 
