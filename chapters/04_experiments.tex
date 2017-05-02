@@ -52,14 +52,32 @@ As a baseline, a single-core implementation of the algorithm is used.
 \section{Algorithm Performance}
 In order to asses the algorithm performance in comparison to Apache Spark and the baseline, lasso regression is run on the epsilon and url dataset with bulk synchronous parallel synchronization (BSP) (Section \ref{ss:synchronization}).
 The algorithm hyper-parameters $\gamma$ and $\lambda$ have been tuned for best performance and are set to 1.0 and 1e-5, respectively.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{img/overall_perf_cmp.png}
+\caption{Overall Algorithm Performance Comparison}
+\label{fig:algo_perf_cmp}
+\end{figure}
 
 
 \section{Consistency Management}
 
 
 \subsection{Communication Frequency}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{img/comm_freq_cmp.png}
+\caption{Communication Frequency Comparison}
+\label{fig:comm_freq_cmp}
+\end{figure}
 
 \subsection{Synchronization Strategy}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{img/sync_strat_cmp.png}
+\caption{Synchronization Strategy Comparison}
+\label{fig:sync_start_cmp}
+\end{figure}
 
 \subsection{Filtering Strategy}
 
