@@ -2,3 +2,29 @@
 
 \chapter{Conclusions and Outlook}
 \label{c:conclusion}
+The thesis introduced a novel framework for distributed machine learning, which at its core uses a state-centric programming model with yield semantics.
+This novel programming model allows the developer to conveniently express a large variety of common machine learning algorithms in terms of control-flow operators like unit and loop and mutable data containers such as state.
+An algorithm description can then be utilized to efficiently schedule and execute the required computation among a cluster of machines.
+Besides the execution of an algorithm, consistency management is the main part of the framework.
+It allows to control and tune state-level and control-flow-level consistency in order to achieve the best overall algorithm performance.
+This includes a variety of properties, such as unit synchronization, parameter update frequency and various filter and merging strategies to obtain the optimal solution to a given convex optimization problem in the least possible time.
+Experiments conducted on two datasets show equal or superior performance on distributed machine learning tasks in comparison to a state-of-the-art system like Apache Spark.
+Also it can be seen that the strategy to achieve the best performance is strongly influenced by properties of the cluster, algorithm and dataset.
+E.g. it has been found that an algorithm converges faster on datasets with low sparsity and a small number of features when the communication frequency is increased.
+On the other hand, higher sparsity and a large number of features requires less communication in order not to spend to much resources on communication rather than computing model parameter refinements.
+In this particular case, different filtering techniques can help to reduce the amount of communicated updates and therefore foster a better balance between communication and computation.
+Another highly important part of a framework for distributed machine learning, which often does not receive enough attention, is fault tolerance.
+
+Future work therefore should focus on three main topics.
+First, additional techniques are required to automatically find and adapt the consistency related parameters according to properties of compute infrastructure, algorithm and data properties.
+With the rise of specialized hardware such as GPU's certain units and their inherent computation could be offloaded in order to make execution more efficient.
+Furthermore an automated approach is required for controlling the consistency management and at the same time relief the developer from manually tuning those hyper-parameters as this is an additional burden and requires extensive search and validation procedures.
+One possible approach would be to use machine learning for automatic parameter tuning.
+Optimizing the hyper-parameters could be cast as another optimization problem for which a model can be learned.
+This learning-to-learn setup might also allow the transfer of knowledge from a model that has been obtained on different architectures, algorithms as well as datasets.
+Second, more efficient aggregation and communication schemes are required to decrease the amount of data that needs to be communicated in order to improve the algorithm performance.
+E.g. the current version of the framework uses a n-to-n broadcast for communicating parameter updates to all dedicated parallel units.
+While this is the fastest way to share progress with other nodes, as the cluster of machines grows larger this way of communication achieves poor scalability and must be replaced by tree or group aggregation schemes.
+Lastly, a very important aspect of any distributed system is fault tolerance and a distributed machine learning system is no exception.
+Even though fault tolerance negatively affects the algorithm performance it is indispensable for large, long running tasks.
+The ability checkpoint and restore computation and state are key and the state-centric programming model together with the algorithm description provides a convenient way for this.
