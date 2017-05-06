@@ -26,6 +26,7 @@
 %% above. 
 
 \documentclass[12pt,oneside]{mitthesis}
+\usepackage[english, ngerman]{babel}
 \usepackage{lgrind}
 %% These have been added at the request of the MIT Libraries, because
 %% some PDF conversions mess up the ligatures.  -LB, 1/22/2014
@@ -52,7 +53,7 @@
 \ifx\files\all \typeout{Including all files.} \else \typeout{Including only \files.} \includeonly{\files} \fi
 
 \begin{document}
-
+\selectlanguage{english}
 \include{cover}
 % Some departments (e.g. 5) require an additional signature page.  See
 % signature.tex for more information and uncomment the following line if

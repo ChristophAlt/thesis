@@ -484,7 +484,9 @@ Tobias Herb
 % this environment should probably be called abstract,
 % but we want people to also be able to get at the more
 % basic abstract environment
-\def\abstractpage{\cleardoublepage
+\def\abstractpage{
+\cleardoublepage
+\def\abstractname{Kurzfassung}
 \begin{center}{\large{\bf \@title} \\
 by \\
 \@author \\[\baselineskip]}
@@ -535,3 +537,5 @@ requirements for the \@degreeword\ of \\
 \def\abstract{\subsection*{Abstract}\small\def\baselinestretch{1}\@normalsize}
 \def\endabstract{\par}
 
+\def\abstractger{\subsection*{Kurzfassung}\small\def\baselinestretch{1}\@normalsize}
+\def\endabstractger{\par}
