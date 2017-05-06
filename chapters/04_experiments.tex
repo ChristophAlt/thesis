@@ -113,3 +113,35 @@ As already discussed in Section \ref{ss:synchronization}, the reason that TAP pe
 These stale updates can spoil the solution and therefore decrease the overall algorithm performance.
 This is even amplified by the small iteration runtime that increases the likelihood of the workers quickly diverging in their algorithm progress.
 In contrast, the URL dataset has a long iteration runtime and it is therefore less likely to observe a severe divergence in iterations between parallel workers.
+
+\subsection{Filtering Strategy}
+\label{ss:filtering_strategy}
+As shown in the previous experiments, increasing the communication frequency can significantly benefit the overall algorithm performance but at the same time increases the overhead for communicating parameter updates to other workers.
+In this experiment, the effect of different filtering strategies on the algorithm performance are evaluated, as previously described in Section \ref{ss:filtering_strategy}.
+The purpose of filtering is to identify the most important parameter updates and only communicate those as the locally achieved progress to other parallel workers in order to reduce the communication overhead.
+Again lasso regularized linear regression is used, with the algorithms hyper-parameters $\gamma$ and $\lambda$ set to 1.0 and 1e-5, respectively.
+As the synchronization strategy SSP is used with a staleness threshold $\tau$ of 3 and the fraction of the data to be processed locally in one iteration $H$ is set to 0.2.
+For this experiment only the URL dataset is considered because the epsilon dataset does not consume significant amount of bandwidth during communication due to its small number of examples.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\textwidth]{img/filter_strat_cmp.png}
+\caption{Filtering Strategy Comparison}
+\label{fig:filt_strat_cmp}
+\end{figure}
+
+\subsection{Merging Strategy}
+\label{ss:merging_strategy}
+Another strategy that can improve the algorithm performance on a convex optimization problem deals with the aggregation and merging of updates received from remote workers.
+In this experiment the difference in time to convergence between adding the updates
+This translates into the algorithm hyper-parameter to be set to 1.0 or $\frac{1}{K}$, respectively.
+The other hyper-parameters $\lambda$ and $H$ are set to 1e-5 and 0.2 on both datasets, with SSP synchronization ($\tau=3$) during algorithm execution.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{img/merg_strat_cmp.png}
+\caption{Merging Strategy Comparison}
+\label{fig:merg_strat_cmp}
+\end{figure}
+From the results in Figure \ref{fig:merg_strat_cmp} can be seen that accumulating and adding the updates to the parameters performs significantly better than averaging on the epsilon dataset.
+With averaging the algorithm still converges but the result is less optimal compared to the solution obtained by adding.
+On the other hand it can be seen that both strategies perform equally well on the URL dataset.
+Sparsity of the dataset seems to play a crucial role in this process, which allows the algorithm to obtain a good estimate about the global solution obtained in one iteration, whereas the same strategy leads to early convergence on the dense dataset.
