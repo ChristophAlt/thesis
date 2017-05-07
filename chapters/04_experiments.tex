@@ -122,12 +122,19 @@ The purpose of filtering is to identify the most important parameter updates and
 Again lasso regularized linear regression is used, with the algorithms hyper-parameters $\gamma$ and $\lambda$ set to 1.0 and 1e-5, respectively.
 As the synchronization strategy SSP is used with a staleness threshold $\tau$ of 3 and the fraction of the data to be processed locally in one iteration $H$ is set to 0.2.
 For this experiment only the URL dataset is considered because the epsilon dataset does not consume significant amount of bandwidth during communication due to its small number of examples.
+The goal of this experiment is to save 20 percent of the communication compared to the case where no filtering is applied.
+Therefore 80 percent of the parameter updates to be sent over the network are selected in each round on a round robin and random basis as well as based on the absolute and relative change in magnitude.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.6\textwidth]{img/filter_strat_cmp.png}
 \caption{Filtering Strategy Comparison}
 \label{fig:filt_strat_cmp}
 \end{figure}
+The results in Figure \ref{fig:filt_strat_cmp} show the results of those four approaches compared to the baseline which selects all parameters for communication at each round.
+It can be seen that filtering by absolute magnitude gives the best results, followed by randomly selecting 80 percent of the parameters.
+In the beginning both methods show a comparable performance to the baseline but as the objective gets closer to its optimal parameterization, all methods using filtering start to diverge.
+One reason for this behavior stems from the fact that coordinate descent as optimization method is more susceptible to the case where workers communicate incomplete updates.
+Each worker only communicates a subset of its parameters resembling the local progress but the parameters do not necessary need to be the same on each machine.
 
 \subsection{Merging Strategy}
 \label{ss:merging_strategy}
