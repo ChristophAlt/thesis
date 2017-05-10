@@ -33,8 +33,8 @@ Consistency management on a state level becomes necessary when a unit is paralle
 Parallelizing a unit results in replication or partitioning of the attached states and therefore it is necessary to control the communication frequency of model or parameter updates based on the available network bandwidth or some network quota.
 Also it is in general possible to control algorithm specific parameters such as the learning rate based on the progress of the other parallel units.
 This generic architecture allows to cover a variety of different use-cases in consistency management.
-While unit level consistency can be achieved solely by the interpreter via control-flow, state-level consistency requires more effort and coordination by the consistency management.
-In algorithm steps where a unit is parallelized, state level consistency management depends mainly on the partitioning of the attached states as well as the access pattern.
+While consistency between parallel units can be achieved solely by the interpreter on a control-flow level, state-level consistency requires more effort and coordination by the consistency management.
+In algorithm steps where a unit is parallelized, state-level consistency management depends mainly on the partitioning of the attached states as well as the access pattern.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/par_repl_model.png}
@@ -96,14 +96,14 @@ The control-flow contains the actual computation followed by a number of steps a
 Previous to executing the computation enclosed in a unit, a cache is created for each state that is altered by said computation (A).
 The reasoning behind this strategy is the fact that updates to the state are best communicated as relative change compared to a previous state (e.g. previous iteration), whereas the actual algorithm requires the absolute change.
 In order to be able to compute a delta between two defined states, only the cache is altered and compared with the previous version before communicating updates.
-After this initialization step the actual computation $\Delta(\ldots)$ is executed according to (\ref{eqn:delta_upd}), which results in a delta $\Delta w$ that can be used to update the state $w$.
+After this initialization step the actual computation $\Delta(\ldots)$ is executed according to \eqref{eqn:delta_upd}, which results in a delta $\Delta w$ that can be used to update the state $w$.
 Instead of applying the delta to actual state $w$, it is applied to the cache $w_{cache}$ only (C).
 When running iterative-convergent algorithms this procedure of updating and caching is repeated multiple times according to the algorithm definition.
 In order for the consistency management to gain a fine grained control over the update communication frequency during the execution, step (D) in the control-flow is a yield component similar to the primitive used in coroutines.
 As with coroutines, the yield suspends the execution of the (update) computation in favor of executing other tasks.
 In case of a unit with consistency management, the yield is triggered on request of the consistency management and at a frequency that is agreed on with the other replicas of the unit.
 Upon a yield, the local progress is communicated to the other units $\Omega_{ij}$ in order to ensure a consistent state.
-For this to happen, the actual state $w$ and the cached version $w_{cache}$ are used to compute $\Delta w = w_{cache} - w$, which is then forwarded to the filter stage (E) if configured.
+For this to happen, the actual state $w$ and the cached version $w_{cache}$ are used to compute $\Delta w = w_{cache} - w$, which is then forwarded to the filter stage (E), if configured.
 The filter stage provides the developer with the ability to control which updates are actually forwarded to the communication stage (F) based on a defined criterion.
 This is necessary for example when there is a bandwidth quota for each machine/unit and only a subset of the updates can be communicated.
 All updates passing the filter stage are then forwarded to the communication stage and sent to the other units over the network (G).
@@ -119,6 +119,7 @@ In such cases the consistency management needs additional means to identify the 
 Filtering or prioritizing updates allows the consistency management to identify the most important updates that need to be communicated first without exceeding the network quota.
 
 \subsection{Filter}
+\label{ss:filtering_strategies}
 The simplest strategy for prioritizing updates is randomly choosing updated parameters of the state for communication until the network quota is exceeded.
 Round-robin prioritization on the other hand repeatedly selects parameters following a fixed schedule.
 A more data-driven approach takes the absolute magnitude of the change
@@ -135,6 +136,7 @@ Depending on the algorithm, the relative change in magnitude
 might be a better prioritization strategy, where $a$ is the current value of the parameter.
 
 \subsection{Merge}
+\label{ss:merging_strategies}
 In addition to prioritization, the merging strategy must be specified as well.
 Merging refers to the process of combining local updates $w_{local}$, remote updates $w_{remote}$ and the current state $w$ to form an updated version of this particular state.
 Merging in general can be described by

@@ -2,12 +2,12 @@
 
 \chapter{Conclusions and Outlook}
 \label{c:conclusion}
-The thesis introduced a novel framework for distributed machine learning, which at its core uses a state-centric programming model with yield semantics.
-This novel programming model allows the developer to conveniently express a large variety of common machine learning algorithms in terms of control-flow operators like unit and loop and mutable data containers such as state.
+The thesis introduced ExaML, a novel framework for distributed machine learning, which at its core uses a state-centric programming model with yield semantics.
+This programming abstraction allows the developer to conveniently express a large variety of common machine learning algorithms in terms of control-flow operators like units, loops and mutable data containers such as state.
 An algorithm description can then be utilized to efficiently schedule and execute the required computation among a cluster of machines.
 Besides the execution of an algorithm, consistency management is the main part of the framework.
 It allows to control and tune state-level and control-flow-level consistency in order to achieve the best overall algorithm performance.
-This includes a variety of properties, such as unit synchronization, parameter update frequency and various filter and merging strategies to obtain the optimal solution to a given convex optimization problem in the least possible time.
+This includes a variety of properties, such as unit synchronization, parameter update frequency and various filter and merging strategies to obtain the optimal solution to a given optimization problem in the least possible time.
 Experiments conducted on two datasets show equal or superior performance on distributed machine learning tasks in comparison to a state-of-the-art system like Apache Spark.
 Also it can be seen that the strategy to achieve the best performance is strongly influenced by properties of the cluster, algorithm and dataset.
 E.g. it has been found that an algorithm converges faster on datasets with low sparsity and a small number of features when the communication frequency is increased.
@@ -29,8 +29,8 @@ While this is the fastest way to share progress with other nodes, as the cluster
 Also future research should investigate the performance of filtering and merging techniques on other datasets and algorithms. Especially gradient based optimization methods can profit from these techniques.
 
 Lastly, a very important aspect of any distributed system is fault tolerance and a distributed machine learning system is no exception.
-Even though fault tolerance negatively affects the algorithm performance it is indispensable for large, long running tasks.
-The ability checkpoint and restore computation and state are key and the state-centric programming model together with the algorithm description provides a convenient way for this.
+Even though fault tolerance negatively affects the algorithm performance, it is indispensable for large, long running tasks.
+The ability to checkpoint and restore computation and state are key and the state-centric programming model together with the algorithm description provides a convenient way for this.
 Although the area of distributed machine learning poses unique challenges and simplifications to fault tolerance that need to be investigated further.
 For example the stochastic nature combined with progress communication of machine learning algorithms makes it difficult to replay parts of the computation, e.g. due to a machine failure.
 On the other hand, e.g. replicated models already provide a fault tolerant way of storing the current state of the algorithm that can be used to provide a starting point for machines that replace a faulty one.

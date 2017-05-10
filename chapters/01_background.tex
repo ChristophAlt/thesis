@@ -20,7 +20,7 @@ E_n(f_w) = \frac{1}{n}\sum_{i=0}^{n} \ell(f_w(x_i),y_i)
 \end{equation}
 quantifies the performance on training set.
 In order to find an optimal solution many algorithms used in large scale machine learning such as regression, topic models, matrix factorization or neural networks employ either gradient based methods or Markov chain Monte Carlo methods.
-To obtain the optimal solution those algorithms try to iteratively update the weight vector $w$. At each iteration $t$ an updated weight vector $w^{t}$ is computed based on the vector of the previous iteration $w^{(t-1)}$ and the data $D$. The resulting model $f_{w^{t}}$ is again a better summary of the data $D$ under the objective $Q$. \ref{eqn:delta_upd} shows the process of refining the model, with $\Delta$ being an arbitrary update function.
+To obtain the optimal solution those algorithms try to iteratively update the weight vector $w$. At each iteration $t$ an updated weight vector $w^{t}$ is computed based on the vector of the previous iteration $w^{(t-1)}$ and the data $D$. The resulting model $f_{w^{t}}$ is again a better summary of the data $D$ under the objective $Q$. \eqref{eqn:delta_upd} shows the process of refining the model, with $\Delta$ being an arbitrary update function.
 \begin{equation}
 w^{t} = w^{(t-1)} + \Delta(D, w^{(t-1)})
 \label{eqn:delta_upd}
@@ -32,7 +32,7 @@ The update function depends on the algorithm employed and can be viewed as a pro
 \label{ss:optimization}
 In order to estimate the optimal parameters $w^*$ of a function belonging to class $f_{w^*} \in F$, numerous techniques can be employed to estimate said parameters.
 In many cases, especially large scale machine learning, methods such as (stochastic) gradient descent and coordinate ascent are used to iteratively optimized the parameterization of the chosen function class.
-Both techniques represent different rules of computing the update shown in \ref{eqn:delta_upd}.
+Both techniques represent different rules of computing the update shown in \eqref{eqn:delta_upd}.
 Gradient descent updates the weights $w$ at each iteration $t$ on the basis of the gradient of $E_n(f_w)$,
 \begin{equation}
 w^{t} = w^{(t-1)} - \eta\frac{1}{n}\sum_{i=0}^{n}\nabla_wQ(z_i,w^{(t-1)})
@@ -45,9 +45,9 @@ Instead of computing the gradient $\nabla_wE_n(f_w)$ exactly, the gradient is es
 w^{t} = w^{(t-1)} - \eta_t\nabla_wQ(z_t,w^{(t-1)})
 \label{eqn:sgd_update}
 \end{equation}
-The assumption is that the gradient obtained by \ref{eqn:sgd_update} behaves similar to its expectation in \ref{eqn:gd_update}.
+The assumption is that the gradient obtained by \eqref{eqn:sgd_update} behaves similar to its expectation in \eqref{eqn:gd_update}.
 The convergence properties have been studied extensively and under mild conditions an almost sure convergence can be established when the learning rate satisfies the conditions $\sum_t\eta_t^2 < \infty$ and $\sum_t\eta_t = \infty$ \cite{bottou2010large}.
-The general structure of stochastic gradient descent is described in (\ref{alg:sgd}).
+The general structure of stochastic gradient descent is described in \eqref{alg:sgd}.
 \begin{algorithm}
 \caption{Stochastic Gradient Descent}\label{alg:sgd}
 \begin{algorithmic}[1]
@@ -60,7 +60,7 @@ The general structure of stochastic gradient descent is described in (\ref{alg:s
 \Until{termination criteria satisfied}
 \end{algorithmic}
 \end{algorithm}
-On the other hand, coordinate descent, described in (\ref{alg:scd}), iteratively tries to optimize a given objective by successively performing approximate minimization along a coordinate direction while keeping the other directions fixed.
+On the other hand, coordinate descent, described in \eqref{alg:scd}, iteratively tries to optimize a given objective by successively performing approximate minimization along a coordinate direction while keeping the other directions fixed.
 \begin{algorithm}
 \caption{Stochastic Coordinate Descent}\label{alg:scd}
 \begin{algorithmic}[1]
@@ -92,7 +92,7 @@ Many algorithms in machine learning can be expressed in this form, such as logis
 
 CoCoA leverages the primal-dual relation which allows for solving the problem in either the primal or dual formulation.
 For some application where the number of examples $n$ is much smaller than the number of features $d$, $n \ll d$, solving the problem in the dual may be easier because this problem has $n$ variables to optimize, compared to $d$ for the primal.
-The CoCoA framework leverages Fenchel-Rockafellar duality to quadratically approximate the global objective in \ref{eqn:lin_loss}.
+The CoCoA framework leverages Fenchel-Rockafellar duality to quadratically approximate the global objective in \eqref{eqn:lin_loss}.
 This leads to separability of the problem over the coordinates of $\alpha$ and the partitions, where the local subproblems are similar in structure to the global problem and also exploit second order information within the local data partition.
 Therefore the dataset $D \in \mathbb{R}^{d \times n}$ can be distributed either example-wise or feature-wise over $K$ physical machines according to the partitioning $\{P\}_{k=1}^K$, depending which is more efficient to solve.
 The size of the partition on machine $k$ is denoted by $n_k = \mid P_k \mid$.
@@ -173,7 +173,7 @@ As depicted in Figure \ref{fig:data_parallelism}, an initial approach by Zinkevi
 \label{fig:data_parallelism}
 \end{figure}
 In this context, data-parallelism means that $K$ machines work in parallel on the input data $D$, hence the data is distributed according to partition $\{P_k\}_{k=1}^K$ into local parts $D^k$.
-Each machine maintains a local model $w_k$ that is iteratively refined based on \ref{eqn:delta_upd} until convergence, using only the local part of the input data $D^k$.
+Each machine maintains a local model $w_k$ that is iteratively refined based on \eqref{eqn:delta_upd} until convergence, using only the local part of the input data $D^k$.
 The local update is of the form
 \begin{equation}
 w_k^{t} = w_k^{(t-1)} + \Delta(w_k^{(t-1)},D^k)
@@ -188,7 +188,7 @@ Even though this approach works well in practice and gives considerable good res
 First, in certain cases the size of a local model $w_k$ exceeds the available memory on a single machine, which leads to the algorithm not work properly.
 This is the case e.g. for topic models at web scale or deep neural networks used in the Google Brain project \cite{dean2012large}, consisting of billions of parameters.
 Second, even though the scalability improved by introducing data-parallelism the lack of parameter exchange during runtime can lead to suboptimal performance \cite{xing2015strategies} as the algorithm essentially resembles batch gradient descent, which is known to have suboptimal convergence properties compared to mini-batch or stochastic gradient descent \cite{bottou2010large} \cite{smith2016cocoa}.
-Third, even though state immutability is beneficial in data-flow extract-transform-load pipelines it seriously affects performance when running algorithms that simultaneously refine a state frequently in multiple consecutive iterations.
+Third, although state immutability is beneficial in data-flow extract-transform-load pipelines it seriously affects performance when running algorithms that simultaneously refine a state frequently in multiple consecutive iterations.
 In order to improve the performance, a system therefore must be able to employ mutable state, communicate more frequently and must also be able to distribute a model across multiple machines to scale with the size of the model.
 Following those requirements resulted in the publication of the parameter server \cite{Li2014}, which provides a framework for inter-node parallelism of iterative-convergent algorithms.
 

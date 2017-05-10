@@ -3,20 +3,20 @@
 \chapter{State Centric Programming Model}
 \label{c:state_centric}
 Most state-of-the-art frameworks for distributed machine learning like Petuum \cite{Xing2015} and Parameter Server \cite{Li2014} are based on the parameter server concept introduced in the previous section.
-This framework essentially provides a low level API\footnote{Application programming interface} for publishing and retrieving values similar to a distributed key-value store, where the key $i$ is for example the index of a weight vector $w$ stored on the server and the value is the weight $w_i$.
+These frameworks essentially provide a low level API\footnote{Application programming interface} for publishing and retrieving values similar to a distributed key-value store, where the key $i$ is for example the index of a weight vector $w$ stored on the server and the value is the weight $w_i$.
 Implementing an algorithm that relies on a parameter server requires incorporating publishing and retrieval of parameters deeply into the algorithm definition.
 This contrasts the general work flow of developing and testing an algorithm locally on a single machine and then transition to a distributed environment such as a cluster.
 Also current frameworks provide only a minor abstraction, leaving the developer with the task of distributing state, scheduling distributed computation, consistency management and managing cluster resources.
 A developer should be able to focus on the main goal, namely solving a domain specific problem by the help of distributed machine learning.
-This section introduces the state centric programming model, general architecture of the framework and its main parts based on the example of iterative-convergent algorithms.
+This section introduces the state centric programming model, general architecture of ExaML and its main parts based on the example of iterative-convergent algorithms.
 Although its application is not limited to this particular algorithm family.
 
 As depicted in Figure \ref{fig:framework_architecture} the framework consists of three major parts, designed to support the developer with the development as well as execution of distributed machine learning algorithms.
 First, at edit-time it provides a collection of primitives that can used to describe the algorithm with the help of the state centric programming model.
-The programming model treats state as a first class citizen which can be distributed according to a given partitioning and altered by local and remote transformation in parallel.
+The programming abstraction treats state as a first class citizen which can be distributed according to a given partitioning and altered by local and remote transformation in parallel.
 Depending on how a state is distributed and the type of transformation applied to it, the consistency management coordinates the distributed execution of all algorithm steps in the most efficient way that still ensures the correctness of the result.
 In the context of machine learning, a correct result can be obtained in different ways as discussed in Section \ref{ss:consistency}.
-Therefore additional primitives are offered by the framework to provide the consistency management with further instructions on how to ensure a consistent distributed execution given a particular state and transformation.
+Therefore additional primitives are offered by the framework to provide the consistency management with further instructions on how to ensure a consistent, distributed execution given a particular state and transformation.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=1.0\textwidth]{img/framework_architecture.png}
@@ -42,7 +42,7 @@ The operators are higher order, meaning each operator possibly contains multiple
 
 \section{Programming Model Primitives}
 In order to support the development process, a programming model is required that is expressive enough to conveniently model the complex dependencies when executing a machine learning algorithm in a distributed manner.
-For this purpose the framework provides a so called state centric programming model, which is motivated by means of the example algorithm definition in (\ref{alg:general_ica}), describing a generic iterative-convergent algorithm as it would be implemented by a developer.
+For this purpose the framework provides a so called state centric programming abstraction, which is motivated by means of the example algorithm definition in \eqref{alg:general_ica}, describing a generic iterative-convergent algorithm as it would be implemented by a developer.
 The example is kept generic because the algorithm definition is very similar among members of the algorithm family.
 Only $f_p$ and $\Delta(\ldots)$ must be replaced by the corresponding preprocessing transformation respectively the optimization technique used to iteratively approximating the optimal solution according to Section \ref{ss:optimization}.
 \begin{algorithm}
@@ -58,7 +58,7 @@ Only $f_p$ and $\Delta(\ldots)$ must be replaced by the corresponding preprocess
 \Until{termination criteria satisfied} \Comment{(D)}
 \end{algorithmic}
 \end{algorithm}
-Figure \ref{fig:ica_control_flow} depicts the definition in (\ref{alg:general_ica}) from a control-flow perspective, describing the algorithm in terms of a sequence of nested operators such as computation/transformation, loops and branches.
+Figure \ref{fig:ica_control_flow} depicts the definition in Algorithm \ref{alg:general_ica} from a control-flow perspective, describing the algorithm in terms of a sequence of nested operators such as computation/transformation, loops and branches.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{img/ica_control_flow.png}
@@ -83,7 +83,7 @@ This is the responsibility of the algorithm parallelization pipeline, described 
 The next sections introduce these key elements of the programming model.
 
 \subsection{State}
-Assuming the algorithm described in (\ref{alg:general_ica}) should be parallelized with a degree of parallelism of two.
+Assuming the algorithm described in \eqref{alg:general_ica} should be parallelized with a degree of parallelism of two.
 The parallelization makes it necessary to replicate each transformation step of the sequential algorithm on $K = 2$ machines, as shown in Figure \ref{fig:ica_control_flow_dist}.
 \begin{figure}[ht]
 \centering
@@ -93,13 +93,13 @@ The parallelization makes it necessary to replicate each transformation step of 
 \end{figure}
 It is worth noting that the transformation logic stays the same independently of the degree of parallelism.
 Including a degree of parallelism of one, which is essentially a single machine.
-Therefore the framework instead of distributing the transformation focuses on how to distribute the state and keeping it consistent throughout the execution of each transformation step.
-Hence the programming model introduces the concept of state, which is essentially a container for an arbitrary, distributable data structure.
+Therefore the framework, instead of distributing the transformation, focuses on how to distribute the state and keeping it consistent throughout the execution of each transformation step.
+Hence the programming abstraction introduces the concept of state, which is essentially a container for an arbitrary, distributable data structure.
 A state $\gamma$ must be partitionable, meaning it can be distributed according to a partitioning $\{P_{\gamma}\}_{k=1}^K$, where $K$ is the degree of parallelism.
 In the area of machine learning, state is commonly represented by tensors of arbitrary type, such as floating point numbers, integers or strings.
 Therefore any further discussion assumes that a state is represented by a tensor of order two (matrix).
-For example the algorithm in (\ref{alg:general_ica}) requires two states, namely the input data $D$ and the model $w$.
-In order to parallelize the algorithm, the parallelization pipeline requires a partitioning $\{P_\gamma\}_{k=1}^K$ for both states, which in the context of machine learning can be divided into the following cases, shown in Table \ref{tab:ica_partitioning}.
+For example, Algorithm \ref{alg:general_ica} requires two states, namely the input data $D$ and the model $w$.
+In order to parallelize this algorithm, the parallelization pipeline requires a partitioning $\{P_\gamma\}_{k=1}^K$ for both states, which in the context of machine learning can be divided into the following cases, shown in Table \ref{tab:ica_partitioning}.
 \begin{table}[h]
 \begin{center}
 \begin{tabular}{ | V | V | V | N}
@@ -125,7 +125,7 @@ The same holds for the size of the input data $D$.
 A special case is the partitioning $\{P_D\}_{k=1}^K$ of the input data, which is in general a matrix with rows consisting of examples.
 For iterative-convergent algorithms, depending on the optimization technique used to iteratively optimize the objective $Q$ of interest, two partitioning schemes are commonly used.
 If the optimization technique requires access to a complete example in order to update the model, such as it is the case with stochastic gradient descent, the input data is partitioned row-wise.
-On the other hand, if a coordinate-wise optimization technique is used, which only needs access to a single feature, the input data is distributed column-wise as shown in Figure \ref{fig:row_col_dist} for a dop of two.
+On the other hand, if a coordinate-wise optimization technique is used, which only needs access to a single feature, the input data is distributed column-wise as shown in Figure \ref{fig:row_col_dist} for a degree of parallelism of two.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.4\textwidth]{img/row_col_dist.png}
@@ -189,7 +189,7 @@ Secondly, as the parallel instances of a unit span a consistency scope, as can b
 \end{figure}
 
 \subsection{Framework in Action}
-This section combines the primitives introduced in the previous sections with the example machine learning algorithm definition in (\ref{alg:general_ica}), in order to show how it can be utilized by a developer to distribute said algorithm.
+This section combines the primitives introduced in the previous sections with the example machine learning algorithm definition in \eqref{alg:general_ica}, in order to show how it can be utilized by a developer to distribute said algorithm.
 In addition to the original definition, a partitioning is required for each of the states $D$ and $w$, serving as instructions for the framework on how to distribute the state.
 Furthermore the unit scopes $\Omega_1, \Omega_2$ must be defined within the algorithm and additionally the synchronization scheme must be specified in order for the consistency management to work properly.
 \begin{algorithm}
@@ -212,7 +212,7 @@ Furthermore the unit scopes $\Omega_1, \Omega_2$ must be defined within the algo
 
 \section{Algorithm Parallelization Pipeline}
 \label{s:algo_parallel_pipeline}
-The algorithm parallelization pipeline is a core part of the framework and provides the functionality to translate an algorithm defined with the state centric programming model (\ref{alg:scpm_ica}) into a representation suited for distributed execution by the driver.
+The algorithm parallelization pipeline is a core part of ExaML and provides the functionality to translate an algorithm defined with the state centric programming model \eqref{alg:scpm_ica} into a representation suited for distributed execution by the driver.
 The sequence of steps to go from an algorithm definition to a distributed or physical plan is depicted in Figure \ref{fig:parallel_pipeline}.
 Where a dark arrow resembles an intermediate representation and a light arrow depicts a transformation step between those representations.
 At first, a logical plan is derived from the algorithm definition by the compiler, which is then passed on to the parallelizer.
@@ -227,7 +227,7 @@ The following sections describe each step and the resulting intermediate represe
 
 \subsection{Compiler}
 The compiler is the first step in the algorithm parallelization pipeline and it is responsible for building a logical representation, or logical plan, of the algorithm by analyzing the algorithm definition.
-Figure \ref{fig:logical_plan} shows the logical plan derived from the example definition in (\ref{alg:scpm_ica}).
+Figure \ref{fig:logical_plan} shows the logical plan derived from the example definition in \eqref{alg:scpm_ica}.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.4\textwidth]{img/logical_plan.png}

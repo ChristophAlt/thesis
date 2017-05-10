@@ -25,9 +25,9 @@ The advantage compared to previous approaches is that the framework can be run e
 
 MapReduce essentially led the path to a convenient and widespread use of big data processing, which found its open source implementation in the Apache Hadoop project \cite{hadoop2009hadoop}.
 The project quickly gained traction and has spawned many business grade platforms, which quickly gained widespread adoption and by now provides a whole ecosystem around big data processing. The software stack includes a fault tolerant distributed file-system (HDFS) a MapReduce framework and a cluster resource manager (YARN) \cite{KumarVavilapalli2013}.
-On the other hand, MapReduce suffers from some practical limitations that lead to the development of new, more sophisticated and specialized big data frameworks. With the most widely used frameworks being Apache Spark \cite{Zaharia2010}, Apache Flink \cite{Alexandrov2014} and GraphLab \cite{Low2012}.
-The first two frameworks use at it's core a data-flow pipeline based architecture, whereas the latter uses a graph abstraction to model particular algorithms.
-All this works well for algorithms that can be expressed as an extract-transform-load pipeline and are often embarrassingly parallel in nature.
+On the other hand, MapReduce suffers from some practical limitations that lead to the development of new, more sophisticated and specialized big data frameworks. With the most widely used frameworks being Apache Spark \cite{Zaharia2010}, Apache Flink \cite{Alexandrov2014} and TensorFlow \cite{abadi2016tensorflow}.
+All three frameworks use at it's core a data-flow based architecture to model particular algorithms.
+This works well for algorithms that can be expressed as an extract-transform-load pipeline and are often embarrassingly parallel in nature.
 On the other hand, machine learning algorithms often rely heavily on many, computationally light, iterations to iteratively update a shared state (model) such as logistic regression or Latent Dirichlet Allocation (LDA).
 These so called iterative-convergent algorithms required a change in how systems for distributed machine learning operate at its core.
 
@@ -44,7 +44,7 @@ Where consistency management is an essential part to ensure that algorithms are 
 
 
 \section{Thesis Outline}
-This thesis introduces a novel framework for large scale distributed machine learning.
+This thesis\footnote{Digital version available at https://github.com/ChristophAl/thesis} introduces a novel framework for large scale distributed machine learning called ExaML\footnote{Not yet open source, but can be made available on request to tobias.herb@tu-berlin.de}.
 It improves upon currently available systems by providing a powerful programming abstraction that can concisely express state of the art machine learning algorithms and at the same time minimizes the effort necessary to move from a single machine to a cluster.
 The framework design is optimized for efficient parallel asynchronous execution of iterative-convergent algorithms in a cluster and ensures the required consistency is enforced among parallel learners, depending on the algorithm properties. By allowing the user to decide how to maintaining the best trade-off between algorithm execution and progress communication the performance is improved as well.
 All of this can be easily customized for quick prototyping and fine tuning, which makes the system suited for developers as well as researchers.

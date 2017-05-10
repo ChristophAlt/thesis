@@ -2,7 +2,7 @@
 
 \chapter{Experiments}
 \label{c:experiments}
-In order to evaluate the current performance of the framework, a series of experiments has been conducted.
+In order to evaluate the current performance of ExaML, a series of experiments has been conducted.
 The experiments are divided into two parts, where the first part focuses on the assessment of the overall algorithm performance when executing machine learning algorithms in a distributed fashion.
 For comparison Apache Spark is used, as the system is currently the state-of-the-art in distributed machine learning as well as a non-parallel baseline implementation.
 Besides the evaluation of the current status of the framework another motivation behind this set of experiments is to prove the usefulness of the programming model.
@@ -11,7 +11,7 @@ Therefore the impact of communication frequency, synchronization strategy as wel
 
 \section{Experiment Setup}
 As the algorithm for comparison, distributed lasso linear regression within the CoCoA framework is used as described in section \ref{ss:cocoa}.
-Based on the generic form of convex optimization problems described in (\ref{eqn:lin_loss}), lasso linear regression is represented by
+Based on the generic form of convex optimization problems described in \eqref{eqn:lin_loss}, lasso linear regression is represented by
 \begin{equation}
 f_\alpha = \frac{1}{2} \parallel D\alpha - y \parallel^2_2
 \label{eqn:lasso}
@@ -22,11 +22,11 @@ r(\alpha) = \lambda \parallel \alpha \parallel_1
 \label{eqn:lasso_reg}
 \end{equation}
 where $\alpha$ is the weight vector, $D$ resembles the input data together with the output $y$ and $\lambda$ is the regularization constant.
-Simple randomized coordinate descent is used as the local solver within the CoCoA framework, as described in (\ref{alg:scd}).
+Simple randomized coordinate descent is used as the local solver within the CoCoA framework, as described in \eqref{alg:scd}.
 As a measure for the overall algorithm performance the distance to the optimal primal solution is used. This optimal value is calculated by running all methods for a large number of iterations (until the algorithm is converged) and then selecting the smallest primal value amongst the results.
 
-In order to show the algorithm performance from different perspectives, two datasets with different properties such as ratio between number of examples and feature size as well as sparsity are used, as can be seen in Table \ref{tab:datasets}.
-In BSP the runtime is measured on a per iteration basis on the driver for Apache Spark as well as the framework.
+In order to show the algorithm performance from different perspectives, two datasets with different properties regarding ratio between number of examples and feature size as well as sparsity are used, as can be seen in Table \ref{tab:datasets}.
+In BSP the runtime is measured on a per iteration basis on the driver for Apache Spark as well as ExaML.
 This includes scheduling of computation and execution.
 When running stale synchronous parallel (SSP) and total asynchronous parallel (TAP) the runtime is measured for each node and iteration independently and the overall runtime is set by the best performing node.
 For a better comparison between systems the data loading and setup stage is not accounted to the overall runtime.
@@ -46,7 +46,7 @@ URL & 2.4 M & 3.2 M & 3.5e-5 \\
 
 The cluster itself consists of 8 machines with each machine equipped with 16 GB of RAM and 8 Intel Xeon E3-1230 V2 CPUs running at 3.30 GHz.
 All nodes are connected via 1 GBit Ethernet.
-Distributed experiments running Apache Spark and the framework use 8 machines if not stated otherwise.
+Distributed experiments running Apache Spark and ExaML use 8 machines if not stated otherwise.
 As a baseline, a single-core implementation of the algorithm is used.
 
 \section{Algorithm Performance}
@@ -63,7 +63,7 @@ Therefore at each iteration the whole feature set is refined before each unit co
 From Figure \ref{fig:algo_perf_cmp} can be seen that both systems perform better than the baseline on the epsilon dataset.
 It should be noted that in comparison to the distributed implementations the baseline still performs quite well due to the fact that the dataset is small enough to fit into a single machines memory.
 But as soon as the data size grows grows beyond this size, only the distributed systems can scale with the data size.
-Furthermore it can be seen from the comparison between the framework and Apache Spark that the algorithm distributed with the framework converges faster.
+Furthermore it can be seen from the comparison between ExaML and Apache Spark that the algorithm distributed with ExaML converges faster.
 This behavior stems from the fact that the epsilon dataset has a small number of features, which are then distributed over multiple machines for parallel refinement, resulting in a small iteration runtime.
 As already mentioned in Section \ref{s:distributed_ml}, this common distributed machine learning procedure of quick refinements followed by communicating the current progress among all participating workers is not a good fit for a data-flow system like Apache Spark.
 In contrast to the epsilon dataset, the baseline implementation gives similar results to the distributed systems.
@@ -76,12 +76,12 @@ In order to mitigate this behavior, multiple filtering strategies will be evalua
 \section{Consistency Management}
 As consistency management is the key part of an efficient distributed machine learning system, this section tries to quantify the impact of multiple consistency management related properties on the algorithm performance.
 As discussed in Section \ref{s:state_centric_comp_centric}, state-level consistency can be maintained by altering the local update communication frequency between unit replicas, while control-flow consistency can be achieved by choosing the proper synchronization strategy.
-Therefore these two properties are evaluated in different configurations, followed by an evaluation of different filtering strategies as discussed in Section \ref{s:strategies}.
+Therefore these two properties are evaluated in different configurations, followed by an evaluation of different filtering strategies and merging strategies as discussed in Section \ref{ss:filtering_strategies} and Section \ref{ss:merging_strategies}, respectively.
 
 \subsection{Communication Frequency}
 Evaluating the correlation between algorithm performance and communication frequency is done using lasso regression on the epsilon and URL dataset with stale synchronous parallel synchronization (SSP) as previously discussed in Section \ref{ss:synchronization}.
 As a baseline the algorithm performance is compared to Apache Spark.
-The hyper-parameters $\gamma$ and $\lambda$ are again set to 1.0 and 1e-5 for both datasets and the staleness threshold $\tau$ is set to 3.
+The hyper-parameters $\gamma$ and $\lambda$ are again set to 1.0 and 1e-5 for both datasets and the staleness threshold $\tau_{max}$ is set to 3.
 In this experiment the parameter $H$ refers to the fraction of the dataset that is processed for parameter refinement of $\alpha$ before the shared parameter vector $v$ is communicated to the participating workers.
 \begin{figure}[ht]
 \centering
@@ -89,19 +89,19 @@ In this experiment the parameter $H$ refers to the fraction of the dataset that 
 \caption{Communication Frequency Comparison}
 \label{fig:comm_freq_cmp}
 \end{figure}
-As depicted in Figure \ref{fig:comm_freq_cmp}, increasing the communication frequency within the framework on the epsilon dataset increases the algorithm performance considerably, with the best results observed for $H$ set to 0.1.
+As depicted in Figure \ref{fig:comm_freq_cmp}, increasing the communication frequency within the framework on the epsilon dataset increases the algorithm performance considerably, with the best results observed for $H = 0.1$.
 The reason this works so well is again twofold.
 First, though the amount of data to be communicated by each worker increases by a factor of 10, sharing progress as early as possible increases the algorithm performance as discussed in Section \ref{ss:consistency}.
 Second, due to the small number of samples in the dataset the resulting amount of communication is still small enough not to interfere with the actual parameter refinement computation.
 On the other hand, with the implementation on Apache Spark using $H=0.1$ the algorithm converges slowly.
 The reason is that the increase in communication frequency also significantly increases the overhead required for aggregation and communication of the shared parameter vector as well as scheduling of the next iteration, even though the amount of data to be communicated is small.
-Repeating the same experiments with the URL dataset shows that increasing the communication frequency degrades the algorithm performance on the framework as well.
+Repeating the same experiments with the URL dataset shows that increasing the communication frequency degrades the algorithm performance on ExaML as well.
 Again the reason for this behavior stems from the fact that the increased dataset size drastically increases the amount of parameter updates to be communicated and therefore the best choice for $H$ is in this case 1.0.
 
 \subsection{Synchronization Strategy}
 In this experiment the influence of the synchronization strategies discussed in Section \ref{ss:synchronization} on the algorithm performance is investigated.
 Similar to the previous experiments, the hyper-parameters $\gamma$ and $\lambda$ are set to 1.0 and 1e-5.
-Furthermore the staleness threshold is set to 1, 3 and infinity for BSP, SSP and TAP, respectively.
+Furthermore the staleness threshold $\tau_{max}$ is set to 1, 3 and infinity for BSP, SSP and TAP, respectively.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=1.0\textwidth]{img/sync_strat_cmp.png}
@@ -117,10 +117,10 @@ In contrast, the URL dataset has a long iteration runtime and it is therefore le
 \subsection{Filtering Strategy}
 \label{ss:filtering_strategy}
 As shown in the previous experiments, increasing the communication frequency can significantly benefit the overall algorithm performance but at the same time increases the overhead for communicating parameter updates to other workers.
-In this experiment, the effect of different filtering strategies on the algorithm performance are evaluated, as previously described in Section \ref{ss:filtering_strategy}.
+In this experiment, the effect of different filtering strategies on the algorithm performance are evaluated, as previously described in Section \ref{ss:filtering_strategies}.
 The purpose of filtering is to identify the most important parameter updates and only communicate those as the locally achieved progress to other parallel workers in order to reduce the communication overhead.
 Again lasso regularized linear regression is used, with the algorithms hyper-parameters $\gamma$ and $\lambda$ set to 1.0 and 1e-5, respectively.
-As the synchronization strategy SSP is used with a staleness threshold $\tau$ of 3 and the fraction of the data to be processed locally in one iteration $H$ is set to 0.2.
+As the synchronization strategy SSP is used with a staleness threshold $\tau_{max}$ of 3 and the fraction of the data to be processed locally in one iteration $H$ is set to 0.2.
 For this experiment only the URL dataset is considered because the epsilon dataset does not consume significant amount of bandwidth during communication due to its small number of examples.
 The goal of this experiment is to save 20 percent of the communication compared to the case where no filtering is applied.
 Therefore 80 percent of the parameter updates to be sent over the network are selected in each round on a round robin and random basis as well as based on the absolute and relative change in magnitude.
@@ -139,15 +139,15 @@ Each worker only communicates a subset of its parameters resembling the local pr
 \subsection{Merging Strategy}
 \label{ss:merging_strategy}
 Another strategy that can improve the algorithm performance on a convex optimization problem deals with the aggregation and merging of updates received from remote workers.
-In this experiment the difference in time to convergence between adding the updates
-This translates into the algorithm hyper-parameter to be set to 1.0 or $\frac{1}{K}$, respectively.
-The other hyper-parameters $\lambda$ and $H$ are set to 1e-5 and 0.2 on both datasets, with SSP synchronization ($\tau=3$) during algorithm execution.
+In this experiment the difference in time to convergence between adding and averaging the updates received from remote workers is evaluated.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=1.0\textwidth]{img/merg_strat_cmp.png}
 \caption{Merging Strategy Comparison}
 \label{fig:merg_strat_cmp}
 \end{figure}
+This translates into the algorithm hyper-parameter $\gamma$ to be set to 1.0 or $\frac{1}{K}$, respectively.
+The other hyper-parameters $\lambda$ and $H$ are set to 1e-5 and 0.2 on both datasets, with SSP synchronization ($\tau_{max}=3$) during algorithm execution.
 From the results in Figure \ref{fig:merg_strat_cmp} can be seen that accumulating and adding the updates to the parameters performs significantly better than averaging on the epsilon dataset.
 With averaging the algorithm still converges but the result is less optimal compared to the solution obtained by adding.
 On the other hand it can be seen that both strategies perform equally well on the URL dataset.

@@ -19,7 +19,7 @@ Current frameworks are neither expressible nor flexible enough to allow for effi
 On the other hand, most parallelization strategies exploit the algorithms inherent stochastic nature to enable parallel execution at the expense of lowered consistency among the shared state.
 Even though this does not necessarily affect quality of the results, an improper chosen level of consistency can severely affect algorithm performance, resulting in a non optimal convergence rate and therefore increased runtime.
 
-This thesis presents a novel framework for distributed machine learning, which uses a state centric programming model with yield semantics.
+This thesis presents the prototype of a novel framework for distributed machine learning called ExaML, which uses a state centric programming abstraction with yield semantics.
 The result is a programming model that allows the user to focus on the key elements of developing distributed machine learning algorithms, namely progress communication and consistency management among distributed workers.
 The framework also takes care of utilizing the cluster resources in an optimal fashion.
 Experiments using lasso linear regression show an increased performance compared to state-of-the-art data processing systems like Apache Spark and at the same time reduce the effort of developing, parallelizing and experimenting with distributed machine learning algorithms at scale.
