@@ -9,22 +9,22 @@ class Experiment:
         self.__rounds = rounds
         
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__name
     
     @property
-    def input_file(self):
+    def input_file(self) -> str:
         return self.__input_file
     
     @property
-    def parameters(self):
+    def parameters(self) -> List[str]:
         return self.__parameters
     
     @property
-    def rounds(self):
+    def rounds(self) -> List[Round]:
         return self.__rounds
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Experiment(name={0}, input_file={1}, parameters={2})'.format(
             self.__name, self.__input_file, self.__parameters)
     
@@ -35,18 +35,18 @@ class Round:
         self.__n = n
         
     @property
-    def duration(self):
+    def duration(self) -> float:
         return self.__duration
     
     @property
-    def objective(self):
+    def objective(self) -> float:
         return self.__objective
     
     @property
-    def n(self):
+    def n(self) -> int:
         return self.__n
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Round(duration={0}, objective={1}, n={2})'.format(
             self.__duration, self.__objective, self.__n)
     
@@ -57,24 +57,24 @@ class DriverRound:
         self.__n = n
         
     @property
-    def duration(self):
+    def duration(self) -> float:
         return self.__duration
     
     @property
-    def device(self):
+    def device(self) -> float:
         return self.__device
     
     @property
-    def n(self):
+    def n(self) -> n:
         return self.__n
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Round(duration={0}, device={1}, n={2})'.format(
             self.__duration, self.__device, self.__n)
 
 class ExperimentLogParser:
     @abstractmethod
-    def parse(self, file_path: str):
+    def parse(self, file_path: str) -> Experiment:
         pass
 
 class PrefixExperimentLogParser(ExperimentLogParser):
@@ -82,7 +82,7 @@ class PrefixExperimentLogParser(ExperimentLogParser):
         self.__prefix = prefix
         self.__parameters = parameters
     
-    def parse(self, file_path: str, no_params: bool =False):
+    def parse(self, file_path: str, no_params: bool =False) -> Experiment:
         with open(file_path, 'r') as f:
             lines = PrefixExperimentLogParser.filter_lines(f.readlines(), self.__prefix)
             
@@ -115,7 +115,7 @@ class PrefixExperimentLogParser(ExperimentLogParser):
             return Experiment(name, input_file, parameters, rounds)
         
     @staticmethod
-    def filter_lines(lines: List[str], prefix: str):
+    def filter_lines(lines: List[str], prefix: str) -> List[str]:
         return [line[line.find(prefix) + len(prefix):] for line in lines if prefix in line]
     
 class PrefixDriverWithExperimentLogParser(ExperimentLogParser):
@@ -123,7 +123,7 @@ class PrefixDriverWithExperimentLogParser(ExperimentLogParser):
         self.__prefix = prefix
         self.__parameters = parameters
     
-    def parse(self: PrefixDriverWithExperimentLogParser, driver_log_path: str, file_path: str, no_params=False):
+    def parse(self: PrefixDriverWithExperimentLogParser, driver_log_path: str, file_path: str, no_params=False) -> Experiment:
         with open(driver_log_path, 'r') as f_d:
             lines_d = PrefixExperimentLogParser.filter_lines(f_d.readlines(), self.__prefix)
             
@@ -167,7 +167,7 @@ class PrefixDriverWithExperimentLogParser(ExperimentLogParser):
             return Experiment(name, input_file, parameters, rounds_f)
         
     @staticmethod
-    def filter_lines(lines: List[str], prefix: str):
+    def filter_lines(lines: List[str], prefix: str) -> List[str]:
         return [line[line.find(prefix) + len(prefix):] for line in lines if prefix in line]
 
 class ExperimentLogPlotter:
@@ -187,7 +187,7 @@ class ExperimentLogPlotter:
         self.__title = ""
         self.__objective_min = 0
         
-    def add_experiment(self, experiment: Experiment, name: str =None, every_n: int =1):
+    def add_experiment(self, experiment: Experiment, name: str =None, every_n: int =1) -> None:
         self.__experiments.append(experiment)
         self.__every_n.append(every_n)
         if name:
@@ -195,10 +195,10 @@ class ExperimentLogPlotter:
         else:
             self.__names.append(experiment.name)
     
-    def figsize(self, figsize):
+    def figsize(self, figsize: float) -> float:
         self.__figsize = figsize
         
-    def ylim(self, ylim):
+    def ylim(self, ylim: float) -> float:
         self.__ylim = ylim
         
     def yticks(self, ticks):
@@ -220,7 +220,7 @@ class ExperimentLogPlotter:
     def title(self, title):
         self.__title = title
     
-    def plot(self, filename: str=None):
+    def plot(self, filename: str=None) -> None:
         timestamps, objectives = ExperimentLogPlotter._prepare_experiments(self.__experiments, self.__objective_min, self.__ylim)
         
         plt.figure(figsize=self.__figsize)
@@ -250,7 +250,7 @@ class ExperimentLogPlotter:
             plt.savefig(filename, transparent=True)
         
     @staticmethod
-    def _max_timestamp(timestamps: List[float]):
+    def _max_timestamp(timestamps: List[float]) -> float:
         max_timestamp = -np.inf
         for timestamp in timestamps:
             current_max = timestamp.max()
@@ -259,7 +259,7 @@ class ExperimentLogPlotter:
         return max_timestamp
       
     @staticmethod
-    def _prepare_experiments(experiments: List[Experiment], min_objective: float, cut_off: float =1e-4):
+    def _prepare_experiments(experiments: List[Experiment], min_objective: float, cut_off: float =1e-4) -> Tuple[List[float], List[float]]:
         timestamps = []
         objectives = []
         
@@ -307,7 +307,7 @@ class ExperimentDoubleLogPlotter:
         self.__subplots = []
         self.__objective_mins = {}
         
-    def add_experiment(self, experiment: Experiment, subplot: int =1, name: str =None, every_n: int =1):
+    def add_experiment(self, experiment: Experiment, subplot: int =1, name: str =None, every_n: int =1) -> None:
         self.__experiments.append(experiment)
         self.__every_n.append(every_n)
         self.__subplots.append(subplot)
@@ -316,16 +316,16 @@ class ExperimentDoubleLogPlotter:
         else:
             self.__names.append(experiment.name)
     
-    def figsize(self, figsize: float):
+    def figsize(self, figsize: float) -> float:
         self.__figsize = figsize
         
-    def ylim(self, ylim: float):
+    def ylim(self, ylim: float) -> float:
         self.__ylim = ylim
         
-    def yticks(self, ticks: int):
+    def yticks(self, ticks: int) -> int:
         self.__yticks = ticks
         
-    def ylabel(self, label: str):
+    def ylabel(self, label: str) -> str:
         self.__ylabel = label
         
     def enable_grid(self, which):
@@ -335,13 +335,13 @@ class ExperimentDoubleLogPlotter:
         self.__use_iterations = True
         self.__xlabel = "Iterations"
     
-    def title(self, title: str, subplot: int =1):
+    def title(self, title: str, subplot: int =1) -> None:
         self.__title.append(title)
     
-    def add_min_objectives(self, objective: float, subplot: int):
+    def add_min_objectives(self, objective: float, subplot: int) -> None:
         self.__objective_mins[subplot] = objective
     
-    def plot(self, filename: str =None):
+    def plot(self, filename: str =None) -> None:
         timestamps, objectives = ExperimentDoubleLogPlotter._prepare_experiments(self.__experiments, self.__objective_mins, self.__subplots, self.__ylim)
         
         n_subplots = max(self.__subplots)
@@ -380,7 +380,7 @@ class ExperimentDoubleLogPlotter:
             f.savefig(filename, transparent=True)
         
     @staticmethod
-    def _max_timestamp(timestamps: List[float]):
+    def _max_timestamp(timestamps: List[float]) -> float:
         max_timestamp = -np.inf
         for timestamp in timestamps:
             current_max = timestamp.max()
@@ -389,7 +389,7 @@ class ExperimentDoubleLogPlotter:
         return max_timestamp
       
     @staticmethod
-    def _prepare_experiments(experiments: List[Experiment], min_objectives: List[float], subplots:List[int], cut_off:float =1e-4):
+    def _prepare_experiments(experiments: List[Experiment], min_objectives: List[float], subplots:List[int], cut_off:float =1e-4) -> Tuple[List[float], List[float]]:
         timestamps = []
         objectives = []
         
