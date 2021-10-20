@@ -1,33 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import *
 
-class Experiment:
-    def __init__(self, name: str, input_file: str, parameters: List[str], rounds: List[Round]):
-        self.__name = name
-        self.__input_file = input_file
-        self.__parameters = parameters
-        self.__rounds = rounds
-        
-    @property
-    def name(self) -> str:
-        return self.__name
-    
-    @property
-    def input_file(self) -> str:
-        return self.__input_file
-    
-    @property
-    def parameters(self) -> List[str]:
-        return self.__parameters
-    
-    @property
-    def rounds(self) -> List[Round]:
-        return self.__rounds
-    
-    def __repr__(self) -> str:
-        return 'Experiment(name={0}, input_file={1}, parameters={2})'.format(
-            self.__name, self.__input_file, self.__parameters)
-    
 class Round:
     def __init__(self, duration: float, objective: float, n: int):
         self.__duration = duration
@@ -65,13 +38,41 @@ class DriverRound:
         return self.__device
     
     @property
-    def n(self) -> n:
+    def n(self) -> int:
         return self.__n
     
     def __repr__(self) -> str:
         return 'Round(duration={0}, device={1}, n={2})'.format(
             self.__duration, self.__device, self.__n)
 
+
+class Experiment:
+    def __init__(self, name: str, input_file: str, parameters: List[str], rounds: List[Round]):
+        self.__name = name
+        self.__input_file = input_file
+        self.__parameters = parameters
+        self.__rounds = rounds
+        
+    @property
+    def name(self) -> str:
+        return self.__name
+    
+    @property
+    def input_file(self) -> str:
+        return self.__input_file
+    
+    @property
+    def parameters(self) -> List[str]:
+        return self.__parameters
+    
+    @property
+    def rounds(self) -> List[Round]:
+        return self.__rounds
+    
+    def __repr__(self) -> str:
+        return 'Experiment(name={0}, input_file={1}, parameters={2})'.format(
+            self.__name, self.__input_file, self.__parameters)
+    
 class ExperimentLogParser:
     @abstractmethod
     def parse(self, file_path: str) -> Experiment:
@@ -123,7 +124,7 @@ class PrefixDriverWithExperimentLogParser(ExperimentLogParser):
         self.__prefix = prefix
         self.__parameters = parameters
     
-    def parse(self: PrefixDriverWithExperimentLogParser, driver_log_path: str, file_path: str, no_params=False) -> Experiment:
+    def parse(self, driver_log_path: str, file_path: str, no_params=False) -> Experiment:
         with open(driver_log_path, 'r') as f_d:
             lines_d = PrefixExperimentLogParser.filter_lines(f_d.readlines(), self.__prefix)
             
