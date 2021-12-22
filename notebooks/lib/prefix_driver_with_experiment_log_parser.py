@@ -1,5 +1,6 @@
 import json
 from itertools import groupby
+from typing import Dict, List
 
 from lib.driver_round import DriverRound
 from lib.experiment import Experiment
@@ -9,11 +10,13 @@ from lib.round import Round
 
 
 class PrefixDriverWithExperimentLogParser(ExperimentLogParser):
-    def __init__(self, prefix, parameters):
+    def __init__(self, prefix: str, parameters: Dict[str]):
         self.__prefix = prefix
         self.__parameters = parameters
 
-    def parse(self, driver_log_path, file_path, no_params=False):
+    def parse(
+        self, driver_log_path: str, file_path: str, no_params: bool = False
+    ) -> Experiment:
         with open(driver_log_path, "r") as f_d:
             lines_d = PrefixExperimentLogParser.filter_lines(
                 f_d.readlines(), self.__prefix
@@ -55,10 +58,6 @@ class PrefixDriverWithExperimentLogParser(ExperimentLogParser):
                         "K": experiment_prop["numSplits"],
                     }
 
-                # device = json.loads(lines_f[0])['device']
-
-                # rnd_duration = {rnd.n: rnd.duration for rnd in rounds_d if rnd.device == device}
-
                 rounds_f = []
                 for line in lines_f[0:]:
                     round_prop = json.loads(line)
@@ -73,7 +72,7 @@ class PrefixDriverWithExperimentLogParser(ExperimentLogParser):
             return Experiment(name, input_file, parameters, rounds_f)
 
     @staticmethod
-    def filter_lines(lines, prefix):
+    def filter_lines(lines: List[str], prefix: str) -> List[str]:
         return [
-            line[line.find(prefix) + len(prefix):] for line in lines if prefix in line
+            line[line.find(prefix) + len(prefix) :] for line in lines if prefix in line
         ]

@@ -1,5 +1,9 @@
+from typing import Optional, Tuple, List
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+from lib.experiment import Experiment
 
 
 class ExperimentLogPlotter:
@@ -19,7 +23,9 @@ class ExperimentLogPlotter:
         self.__title = ""
         self.__objective_min = 0
 
-    def add_experiment(self, experiment, name=None, every_n=1):
+    def add_experiment(
+        self, experiment: Experiment, name: Optional[str] = None, every_n: int = 1
+    ) -> None:
         self.__experiments.append(experiment)
         self.__every_n.append(every_n)
         if name:
@@ -27,32 +33,32 @@ class ExperimentLogPlotter:
         else:
             self.__names.append(experiment.name)
 
-    def figsize(self, figsize):
+    def figsize(self, figsize: Tuple[int, int]) -> None:
         self.__figsize = figsize
 
-    def ylim(self, ylim):
+    def ylim(self, ylim: float) -> None:
         self.__ylim = ylim
 
-    def yticks(self, ticks):
+    def yticks(self, ticks: List[float]) -> None:
         self.__yticks = ticks
 
-    def ylabel(self, label):
+    def ylabel(self, label: str) -> None:
         self.__ylabel = label
 
-    def enable_grid(self, which):
+    def enable_grid(self, which: str) -> None:
         self.__which_grid = which
 
-    def use_iterations(self):
+    def use_iterations(self) -> None:
         self.__use_iterations = True
         self.__xlabel = "Iterations"
 
-    def add_min_objective(self, objective):
+    def add_min_objective(self, objective: float) -> None:
         self.__objective_min = objective
 
-    def title(self, title):
+    def title(self, title: str) -> None:
         self.__title = title
 
-    def plot(self, filename=None):
+    def plot(self, filename: Optional[str] = None) -> None:
         timestamps, objectives = ExperimentLogPlotter._prepare_experiments(
             self.__experiments, self.__objective_min, self.__ylim
         )
@@ -84,7 +90,7 @@ class ExperimentLogPlotter:
             plt.savefig(filename, transparent=True)
 
     @staticmethod
-    def _max_timestamp(timestamps):
+    def _max_timestamp(timestamps: List[np.ndarray[float]]) -> float:
         max_timestamp = -np.inf
         for timestamp in timestamps:
             current_max = timestamp.max()
@@ -93,7 +99,9 @@ class ExperimentLogPlotter:
         return max_timestamp
 
     @staticmethod
-    def _prepare_experiments(experiments, min_objective, cut_off=1e-4):
+    def _prepare_experiments(
+        experiments: List[Experiment], min_objective: float, cut_off: float = 1e-4
+    ) -> Tuple[List[np.ndarray[float]], List[np.ndarray[float]]]:
         timestamps = []
         objectives = []
 
@@ -106,9 +114,9 @@ class ExperimentLogPlotter:
             objectives_arr = objectives_arr - min_objective
 
             max_idx = -1
-            for i, objective in enumerate(objectives_arr):
+            for j, objective in enumerate(objectives_arr):
                 if objective < cut_off:
-                    max_idx = i
+                    max_idx = j
                     break
 
             timestamps.append(timestamps_arr[:max_idx])

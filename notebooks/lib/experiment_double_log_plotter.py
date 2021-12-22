@@ -1,7 +1,10 @@
 from collections import defaultdict
+from typing import Tuple, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from lib.experiment import Experiment
 
 
 class ExperimentDoubleLogPlotter:
@@ -36,7 +39,13 @@ class ExperimentDoubleLogPlotter:
         self.__subplots = []
         self.__objective_mins = {}
 
-    def add_experiment(self, experiment, subplot=1, name=None, every_n=1):
+    def add_experiment(
+        self,
+        experiment: Experiment,
+        subplot: int = 1,
+        name: str = None,
+        every_n: int = 1,
+    ) -> None:
         self.__experiments.append(experiment)
         self.__every_n.append(every_n)
         self.__subplots.append(subplot)
@@ -45,32 +54,32 @@ class ExperimentDoubleLogPlotter:
         else:
             self.__names.append(experiment.name)
 
-    def figsize(self, figsize):
+    def figsize(self, figsize: Tuple[int, int]) -> None:
         self.__figsize = figsize
 
-    def ylim(self, ylim):
+    def ylim(self, ylim: float) -> None:
         self.__ylim = ylim
 
-    def yticks(self, ticks):
+    def yticks(self, ticks: List[float]) -> None:
         self.__yticks = ticks
 
-    def ylabel(self, label):
+    def ylabel(self, label: str) -> None:
         self.__ylabel = label
 
-    def enable_grid(self, which):
+    def enable_grid(self, which: str) -> None:
         self.__which_grid = which
 
-    def use_iterations(self):
+    def use_iterations(self) -> None:
         self.__use_iterations = True
         self.__xlabel = "Iterations"
 
-    def title(self, title, subplot=1):
+    def title(self, title: str) -> None:
         self.__title.append(title)
 
-    def add_min_objectives(self, objective, subplot):
+    def add_min_objectives(self, objective: float, subplot: int) -> None:
         self.__objective_mins[subplot] = objective
 
-    def plot(self, filename=None):
+    def plot(self, filename: Optional[str] = None) -> None:
         timestamps, objectives = ExperimentDoubleLogPlotter._prepare_experiments(
             self.__experiments, self.__objective_mins, self.__subplots, self.__ylim
         )
@@ -111,7 +120,7 @@ class ExperimentDoubleLogPlotter:
             f.savefig(filename, transparent=True)
 
     @staticmethod
-    def _max_timestamp(timestamps):
+    def _max_timestamp(timestamps: List[np.ndarray[float]]) -> float:
         max_timestamp = -np.inf
         for timestamp in timestamps:
             current_max = timestamp.max()
@@ -120,7 +129,12 @@ class ExperimentDoubleLogPlotter:
         return max_timestamp
 
     @staticmethod
-    def _prepare_experiments(experiments, min_objectives, subplots, cut_off=1e-4):
+    def _prepare_experiments(
+        experiments: List[Experiment],
+        min_objectives: List[float],
+        subplots: List[int],
+        cut_off: float = 1e-4,
+    ) -> Tuple[List[np.ndarray[float]], List[np.ndarray[float]]]:
         timestamps = []
         objectives = []
 
@@ -129,14 +143,12 @@ class ExperimentDoubleLogPlotter:
                 [rnd.duration / 1000 for rnd in experiment.rounds]
             )
             objectives_arr = np.array([rnd.objective for rnd in experiment.rounds])
-
-            # objectives_arr = objectives_arr - objectives_arr.min()
             objectives_arr = objectives_arr - min_objectives[subplots[i]]
 
             max_idx = -1
-            for i, objective in enumerate(objectives_arr):
+            for j, objective in enumerate(objectives_arr):
                 if objective < cut_off:
-                    max_idx = i
+                    max_idx = j
                     break
 
             timestamps.append(timestamps_arr[:max_idx])
@@ -147,7 +159,5 @@ class ExperimentDoubleLogPlotter:
             current_min = objective.min()
             if current_min < min_objective:
                 min_objective = current_min
-
-        # objectives = [objective - min_objective for objective in objectives]
 
         return timestamps, objectives

@@ -1,16 +1,17 @@
 import json
+from typing import List, Dict
 
 from lib.experiment import Experiment
 from lib.experiment_log_parser import ExperimentLogParser
-from round import Round
+from lib.round import Round
 
 
 class PrefixExperimentLogParser(ExperimentLogParser):
-    def __init__(self, prefix, parameters):
+    def __init__(self, prefix: str, parameters: Dict[str]):
         self.__prefix = prefix
         self.__parameters = parameters
 
-    def parse(self, file_path, no_params=False):
+    def parse(self, file_path: str, no_params: bool = False) -> Experiment:
         with open(file_path, "r") as f:
             lines = PrefixExperimentLogParser.filter_lines(f.readlines(), self.__prefix)
 
@@ -49,7 +50,7 @@ class PrefixExperimentLogParser(ExperimentLogParser):
             return Experiment(name, input_file, parameters, rounds)
 
     @staticmethod
-    def filter_lines(lines, prefix):
+    def filter_lines(lines: List[str], prefix: str) -> List[str]:
         return [
-            line[line.find(prefix) + len(prefix):] for line in lines if prefix in line
+            line[line.find(prefix) + len(prefix) :] for line in lines if prefix in line
         ]
